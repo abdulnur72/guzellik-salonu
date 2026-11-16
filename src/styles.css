@@ -1,0 +1,112 @@
+/* Renkler sektör paketinden gelir (src/sectors, applyTheme). Buradakiler yedek. */
+:root {
+  --bg: #fbf4f6; --card: #fff; --ink: #2b1330; --mute: #7b6680; --line: #e4d2dd;
+  --acc: #b83a74; --on: #fff; --seg: #f6e7ee; --edge: #ddb0c6; --ok: #3e8e74; --bad: #c0443b;
+  --font: Manrope, system-ui, sans-serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font);
+  font-size: 15px; line-height: 1.5; font-variant-numeric: tabular-nums;
+  padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+a { color: var(--acc) }
+.pole { height: 3px; background: var(--acc) }
+.wrap { max-width: 720px; margin: 0 auto; padding: 20px 16px 40px }
+.hd { margin-bottom: 14px }
+h1 { font-size: 22px; line-height: 1.2; margin: 0; font-weight: 700; letter-spacing: -.01em }
+.sub { color: var(--mute); font-size: 14px; margin-top: 2px }
+select, input, textarea {
+  font: inherit; color: var(--ink); background: var(--seg); border: 1px solid var(--line);
+  border-radius: 8px; padding: 10px 12px; width: 100%;
+}
+select:focus-visible, input:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px }
+.tabs { display: flex; gap: 2px; background: var(--seg); border-radius: 10px; padding: 3px; margin-bottom: 16px }
+.tabs button {
+  flex: 1 1 0; min-width: 0; border: 0; background: transparent; color: var(--mute); font: inherit; font-weight: 600;
+  font-size: clamp(12px, 3.4vw, 15px); padding: 9px 2px; border-radius: 8px; cursor: pointer; white-space: nowrap; overflow: hidden;
+}
+.tabs button[aria-pressed="true"] { background: var(--acc); color: var(--on) }
+.card { background: var(--card); border: 1px solid var(--edge); border-radius: 10px; padding: 16px; margin-bottom: 14px }
+.card h2 { font-size: 15px; font-weight: 700; margin: 0 0 6px }
+label { display: block; font-size: 13px; font-weight: 600; color: var(--mute); margin: 14px 0 6px }
+label.check { display: flex; gap: 8px; align-items: flex-start; font-weight: 500 }
+label.check input { width: auto; margin-top: 3px }
+.row { display: flex; gap: 10px }
+.row > * { flex: 1 }
+.go {
+  width: 100%; margin-top: 18px; border: 0; background: var(--acc); color: var(--on); font: inherit; font-weight: 700;
+  font-size: 16px; padding: 14px; border-radius: 10px; cursor: pointer; text-transform: uppercase; letter-spacing: .03em;
+}
+.go:disabled { opacity: .6 }
+.btn2 {
+  display: inline-block; border: 1px solid var(--line); background: var(--card); color: var(--ink); font: inherit; font-weight: 600;
+  font-size: 14px; padding: 9px 14px; border-radius: 8px; cursor: pointer; text-decoration: none;
+}
+.block { display: block; width: 100%; margin-bottom: 14px }
+.center { text-align: center }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px }
+.stat { background: var(--card); border: 1px solid var(--edge); border-radius: 10px; padding: 14px 12px; min-width: 0 }
+.stat span { display: block; font-size: 12px; font-weight: 600; color: var(--mute); margin-bottom: 6px }
+.stat b { display: block; color: var(--acc); font-size: 20px; line-height: 1.1; font-weight: 700; overflow-wrap: anywhere }
+.list { list-style: none; margin: 0; padding: 0 }
+.list li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 0; border-top: 1px solid var(--line); font-size: 14px }
+.list li:first-child { border-top: 0 }
+.list li.ap { flex-wrap: wrap }
+.actions { display: flex; gap: 6px; flex-wrap: wrap }
+.ap .actions { width: 100% }
+.actions.end { justify-content: flex-end; align-items: center }
+.dn { text-decoration: line-through; opacity: .6 }
+.mute { color: var(--mute) }
+.normal { font-weight: 500 }
+.small { font-size: 13px; margin: 6px 0 0 }
+.break { overflow-wrap: anywhere }
+.scroll { overflow-x: auto }
+table { border-collapse: collapse; width: 100%; font-size: 14px }
+th, td { text-align: right; padding: 10px 8px; border-top: 1px solid var(--line); white-space: nowrap }
+th:first-child, td:first-child { text-align: left }
+th { font-size: 12px; color: var(--mute); font-weight: 600; border-top: 0 }
+td input { width: 68px; padding: 6px 8px; text-align: right }
+input.price { width: 96px; padding: 6px 8px }
+.chip { display: inline-block; font-size: 12px; font-weight: 600; color: var(--mute); border: 1px solid var(--line); border-radius: 99px; padding: 2px 10px; margin-top: 8px }
+.empty { color: var(--mute) }
+.brand { display: flex; gap: 12px; align-items: center }
+.logo { width: 56px; height: 56px; overflow: hidden; flex: none; border: 1px solid var(--edge); border-radius: 12px; display: grid; place-items: center; color: var(--acc) }
+.logo img { width: 100%; height: 100%; object-fit: cover }
+.strip { background: var(--seg); color: var(--acc); font-size: 13px; text-align: center; padding: 10px 12px; border-radius: 8px; margin-bottom: 14px }
+.orn { display: flex; align-items: center; gap: 10px; margin: 14px 0 0; color: var(--acc) }
+.orn i { flex: 1; height: 1px; background: var(--line) }
+.sq { width: 72px; height: 72px; flex: none; border-radius: 10px; border: 1px solid var(--edge); background: var(--seg); color: var(--acc); display: grid; place-items: center; overflow: hidden; font-weight: 700; font-size: 26px }
+.sq img, .avatar img { width: 100%; height: 100%; object-fit: cover }
+.avatar { display: inline-grid; place-items: center; vertical-align: middle; border-radius: 50%; background: var(--seg); overflow: hidden; font-weight: 700; color: var(--acc); flex: none }
+.pick { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(72px, 96px); gap: 10px; overflow-x: auto; padding-bottom: 4px }
+.pk { background: var(--seg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 6px; color: var(--ink); font: inherit; font-weight: 600; font-size: 13px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0 }
+.pk[aria-pressed="true"] { border-color: var(--acc); background: var(--card); box-shadow: inset 0 0 0 1px var(--acc) }
+.pick .pk .sq { width: 100%; height: auto; aspect-ratio: 1; font-size: 22px }
+.pk .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100% }
+.pk .n.wrap { white-space: normal; line-height: 1.15; text-align: center; overflow: visible; text-overflow: clip; font-size: 12px }
+.qk { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px }
+.qk .pk { padding: 12px 8px; font-size: 14px; text-align: center }
+.qk .pk span { font-size: 12px; font-weight: 500 }
+.catbar { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 6px }
+.pill { flex: none; white-space: nowrap; border: 1px solid var(--line); background: var(--seg); color: var(--ink); font: inherit; font-weight: 600; font-size: 13px; padding: 7px 14px; border-radius: 99px; cursor: pointer }
+.pill[aria-pressed="true"] { background: var(--acc); border-color: var(--acc); color: var(--on) }
+.slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px }
+.slots button { border: 1px solid var(--line); background: var(--seg); color: var(--ink); font: inherit; font-weight: 600; padding: 9px 0; border-radius: 8px; cursor: pointer }
+.slots button[aria-pressed="true"] { background: var(--acc); border-color: var(--acc); color: var(--on) }
+.slots button:disabled { opacity: .3; text-decoration: line-through; cursor: default }
+.ok { color: var(--ok); font-weight: 700 }
+summary { cursor: pointer; font-weight: 700 }
+
+/* Geniş ekran (bilgisayar): panel iki sütuna açılır. Telefonda tek sütun kalır. */
+@media (min-width: 960px) {
+  .wrap { max-width: 1160px; padding: 28px 24px 48px }
+  .wrap.narrow { max-width: 720px }
+  .grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 18px; align-items: start }
+  .qk { grid-template-columns: repeat(3, 1fr) }
+  .slots { grid-template-columns: repeat(6, 1fr) }
+  .narrow-card { max-width: 480px; margin-left: auto; margin-right: auto }
+  .tabs { max-width: 560px }
+}
+.filebtn { cursor: pointer; margin: 0; font-size: 14px; color: var(--ink) }
