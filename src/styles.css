@@ -151,7 +151,9 @@ th { font-size: 15px }
 .sq { font-size: 30px }
 .pk { font-size: 17px; border-radius: 16px }
 .pk .n.wrap { font-size: 15px }
-.pick { grid-auto-columns: minmax(84px, 108px) }
+/* Personel kartları kaymasın, hepsi görünsün: satırlara dizilir */
+.pick { grid-auto-flow: row; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); overflow: visible; gap: 10px }
+.pick .pk { padding: 8px 6px }
 .qk .pk { font-size: 18px; padding: 16px 10px; min-height: 84px }
 .qk .pk span { font-size: 16px }
 .pill { font-size: 17px; padding: 12px 18px; min-height: 50px }
