@@ -1,0 +1,12 @@
+{
+  "name": "Güzellik Salonu",
+  "short_name": "Salon",
+  "lang": "tr",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FBF4F6",
+  "theme_color": "#B83A74",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
