@@ -208,7 +208,7 @@ function SalonInfo({ address, phone, hours }: { address: string; phone: string; 
   if (!address && !phone && !hours) return null
   return (
     <>
-      <div style={{ marginTop: 10, fontSize: 14, lineHeight: 1.6 }}>
+      <div style={{ marginTop: 10, lineHeight: 1.6 }}>
         {address && (
           <div>
             <b>{t('book.address')}:</b> {address}
