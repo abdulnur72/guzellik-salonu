@@ -110,3 +110,49 @@ summary { cursor: pointer; font-weight: 700 }
   .tabs { max-width: 560px }
 }
 .filebtn { cursor: pointer; margin: 0; font-size: 14px; color: var(--ink) }
+
+/* ---- Uygulama görünümü: büyük yazı, telefonda uygulama gibi ---- */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100% }
+body { font-size: 17px; line-height: 1.55; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; min-height: 100dvh }
+.wrap { padding: 18px 16px calc(40px + env(safe-area-inset-bottom, 0px)) }
+h1 { font-size: 26px }
+.sub { font-size: 16px }
+.chip { font-size: 14px; padding: 3px 12px }
+.logo { width: 64px; height: 64px; border-radius: 16px }
+select, input, textarea { font-size: 17px; padding: 13px 14px; border-radius: 12px; min-height: 50px }
+td input, input.price { font-size: 16px; min-height: 44px }
+label { font-size: 15px; margin: 16px 0 8px }
+label.check { font-size: 16px }
+label.check input { min-height: 0; width: 22px; height: 22px }
+/* Sekmeler: üstte, kaydırınca ekranın tepesinde kalır */
+.tabs {
+  position: sticky; top: 0; z-index: 20; margin: 0 -16px 18px; border-radius: 0; gap: 4px;
+  padding: calc(8px + env(safe-area-inset-top, 0px)) 10px 8px; background: var(--bg); box-shadow: 0 1px 0 var(--line);
+}
+.tabs button {
+  font-size: clamp(13px, 3.7vw, 17px); font-weight: 700; padding: 12px 2px; border-radius: 12px; background: var(--seg); min-height: 48px;
+}
+.tabs button[aria-pressed="true"] { box-shadow: 0 2px 8px rgba(0, 0, 0, .15) }
+.card { border-radius: 16px; padding: 18px; margin-bottom: 16px }
+.card h2 { font-size: 19px; margin: 0 0 8px }
+.go { font-size: 18px; padding: 16px; border-radius: 14px; min-height: 56px }
+.btn2 { font-size: 16px; padding: 11px 16px; border-radius: 12px; min-height: 46px }
+.stat { border-radius: 14px }
+.stat span { font-size: 14px }
+.stat b { font-size: clamp(17px, 5vw, 24px) }
+.list li { font-size: 16px; padding: 12px 0 }
+table { font-size: 16px }
+th { font-size: 14px }
+.strip { font-size: 15px; padding: 12px 14px; border-radius: 12px }
+.small { font-size: 15px }
+.pk { font-size: 15px; border-radius: 14px }
+.pk .n.wrap { font-size: 14px }
+.qk .pk { font-size: 16px; padding: 14px 10px; min-height: 72px }
+.qk .pk span { font-size: 14px }
+.pill { font-size: 15px; padding: 10px 16px; min-height: 44px }
+.slots button { font-size: 16px; padding: 12px 0; border-radius: 10px; min-height: 48px }
+.filebtn { font-size: 16px }
+.linkbox { margin: 0 0 4px; padding: 12px 14px; background: var(--seg); border-radius: 12px; font-weight: 600; color: var(--acc) }
+@media (min-width: 760px) {
+  .tabs { margin: 0 0 18px; border-radius: 14px; max-width: 720px }
+}

@@ -18,6 +18,7 @@ export function App() {
       <div className="pole" />
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/subeler" element={<HomePage list />} />
         <Route path="/sahip" element={<OwnerPage />} />
         <Route path="/s/:slug" element={<PanelPage />} />
         <Route path="/r/:slug" element={<BookingPage />} />

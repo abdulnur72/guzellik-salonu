@@ -2,24 +2,21 @@
 // Personel, resepsiyon ve yönetici aynı linkten girer; kim olduğu PIN ile belirlenir.
 
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { logout } from '../core/data/auth'
 import { useBranch } from '../core/data/demoStore'
 import { disconnect, onAuthLost, onError, useConnection } from '../core/data/remote'
 import { t } from '../i18n'
 import { useClock, useMoney } from '../ui/hooks'
+import { AppTabs, isAppTab, rememberSlug, type AppTab } from '../ui/AppTabs'
+import { InstallCard } from '../ui/install'
 import { SalonHeader } from '../ui/layout'
 import { AppointmentsView } from './panel/AppointmentsView'
+import { CustomerView } from './panel/CustomerView'
 import { ManagerView } from './panel/ManagerView'
 import { StaffView } from './panel/StaffView'
 import type { PanelCtx, Session } from './panel/ctx'
 
-type Tab = 'manager' | 'staff' | 'appointments'
-const TABS: [Tab, Parameters<typeof t>[0]][] = [
-  ['manager', 'tab.manager'],
-  ['staff', 'tab.staff'],
-  ['appointments', 'tab.appointments'],
-]
 
 function loadSession(key: string): Session {
   try {
@@ -39,7 +36,20 @@ function Panel({ slug }: { slug: string | undefined }) {
   const { db, data } = useBranch(slug)
   const sKey = 'salon-session-' + slug
   const [session, setSessionState] = useState<Session>(() => loadSession(sKey))
-  const [tab, setTab] = useState<Tab>(() => (session?.kind === 'manager' ? 'manager' : 'staff'))
+  const [params, setParams] = useSearchParams()
+  const nav = useNavigate()
+  const asked = params.get('tab')
+  const [tab, setTab] = useState<AppTab>(() =>
+    isAppTab(asked) && asked !== 'business' ? asked : session?.kind === 'manager' ? 'manager' : 'staff',
+  )
+  // ?tab= yalnızca açılışta okunur, sonra adres temiz kalsın
+  useEffect(() => {
+    if (asked) setParams({}, { replace: true })
+  }, [asked, setParams])
+  useEffect(() => {
+    if (slug) rememberSlug(slug)
+  }, [slug])
+  const pickTab = (k: AppTab) => (k === 'business' ? nav('/sahip') : setTab(k))
   const fmt = useMoney(db.business)
   const clock = useClock(db.business, data?.branch)
 
@@ -88,16 +98,12 @@ function Panel({ slug }: { slug: string | undefined }) {
   return (
     <div className="wrap">
       <SalonHeader business={db.business} branch={data.branch} />
-      <div className="tabs" role="group" aria-label="Görünüm">
-        {TABS.map(([k, label]) => (
-          <button key={k} aria-pressed={tab === k} onClick={() => setTab(k)}>
-            {t(label)}
-          </button>
-        ))}
-      </div>
+      <AppTabs active={tab} onPick={pickTab} />
       {tab === 'staff' && <StaffView ctx={ctx} />}
       {tab === 'appointments' && <AppointmentsView ctx={ctx} />}
       {tab === 'manager' && <ManagerView ctx={ctx} />}
+      {tab === 'customer' && <CustomerView ctx={ctx} />}
+      <InstallCard />
     </div>
   )
 }

@@ -13,6 +13,7 @@ import { longDate, shortDate } from '../core/time'
 import type { Id } from '../core/types'
 import { t } from '../i18n'
 import { useClock, useMoney } from '../ui/hooks'
+import { useBookingManifest } from '../ui/install'
 import { SalonHeader } from '../ui/layout'
 import { ServicePicker, SlotPicker, StaffPicker } from '../ui/pickers'
 import { isValidTrPhone } from '../ui/whatsapp'
@@ -44,6 +45,7 @@ function Booking({ slug }: { slug: string }) {
   const [busy, setBusy] = useState(false)
   const [slotsReady, setSlotsReady] = useState(isDemo)
   const [myList, setMyList] = useState<MyBooking[]>([])
+  useBookingManifest(slug, db.business.name)
 
   // Gerçek modda seçilen günün dolu saatleri sunucudan gelir
   const refreshBusy = useCallback(() => {

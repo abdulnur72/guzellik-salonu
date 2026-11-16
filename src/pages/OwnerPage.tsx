@@ -13,11 +13,24 @@ import { expensesTotal, periodTotals } from '../core/reports'
 import { businessToday, monthStart } from '../core/time'
 import { t } from '../i18n'
 import { useMoney } from '../ui/hooks'
+import { AppTabs, lastSlug, type AppTab } from '../ui/AppTabs'
+import { InstallCard } from '../ui/install'
 import { SalonHeader, Strip } from '../ui/layout'
 import { StatTiles, Table } from '../ui/pickers'
 import { LoadState } from './PanelPage'
 
 const OWNER_KEY = 'salon-owner'
+
+/** Sahip panelindeki sekme çubuğu: diğer sekmeler son açılan şubenin paneline gider. */
+function OwnerTabs({ firstSlug }: { firstSlug?: string }) {
+  const nav = useNavigate()
+  const go = (k: AppTab) => {
+    if (k === 'business') return
+    const slug = lastSlug() || firstSlug
+    if (slug) nav(`/s/${slug}?tab=${k}`)
+  }
+  return <AppTabs active="business" onPick={go} />
+}
 
 /** Sahip oturumu: gerçek modda sunucunun verdiği anahtar, demo modunda '1' */
 function ownerToken() {
@@ -66,6 +79,7 @@ function OwnerLogin({ onLogin }: { onLogin: (token: string) => void }) {
   return (
     <div className="wrap narrow">
       <SalonHeader business={{ name: typeof idx === 'object' ? idx.business.name : '' }} />
+      <OwnerTabs firstSlug={typeof idx === 'object' ? idx.branches[0]?.slug : undefined} />
       <form className="card" onSubmit={async (e) => {
         e.preventDefault()
         if (busy) return
@@ -81,6 +95,7 @@ function OwnerLogin({ onLogin }: { onLogin: (token: string) => void }) {
         <input id="opin" type="password" inputMode="numeric" maxLength={8} autoComplete="off" value={pin} onChange={(e) => setPin(e.target.value)} />
         <button className="go" disabled={busy}>{t('common.enter')}</button>
       </form>
+      <InstallCard />
     </div>
   )
 }
@@ -119,6 +134,7 @@ function OwnerPanel({ token, setSession }: { token: string; setSession: (v: stri
   return (
     <div className="wrap">
       <SalonHeader business={db.business} branch={first} />
+      <OwnerTabs firstSlug={first.slug} />
       <Strip>{t('owner.strip')}</Strip>
       <StatTiles items={[[t('owner.totalRevenue'), fmt(total.c)], [t('owner.totalNet'), fmt(total.net)], [t('owner.branchCount'), n]]} />
       <div className="grid2">

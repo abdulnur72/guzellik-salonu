@@ -60,6 +60,23 @@ export const tr = {
   'tab.manager': 'Yönetici',
   'tab.staff': 'Personel',
   'tab.appointments': 'Randevu',
+  'tab.business': 'İşletme',
+  'tab.customer': 'Müşteri',
+
+  'cust.strip': 'Müşteri görünümü • Müşteri bu linkten yalnızca randevu sayfasını görür',
+  'cust.title': 'Müşteri randevu linki',
+  'cust.info': 'Bu linki müşterilerine gönder ya da QR koda çevir. Açılan sayfada yalnızca online randevu formu vardır; yönetim sekmeleri görünmez.',
+  'cust.open': 'Müşteri sayfasını aç',
+  'cust.copy': 'Linki kopyala',
+  'cust.copied': 'Kopyalandı',
+  'cust.whatsapp': 'WhatsApp’ta paylaş',
+  'cust.shareText': '{salon} online randevu: {link}',
+
+  'install.title': 'Ana ekrana ekle',
+  'install.info': 'Uygulamayı telefonuna kur, ana ekrandan tek dokunuşla aç.',
+  'install.ios': 'Safari’de alttaki Paylaş düğmesine dokun, sonra “Ana Ekrana Ekle”yi seç.',
+  'install.button': 'Ana ekrana ekle',
+  'install.later': 'Gizle',
 
   'staff.strip': 'Çalışan görünümü • Yalnızca senin verilerin',
   'staff.whoAreYou': 'Kimsin? Adına dokun',

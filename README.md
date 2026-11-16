@@ -7,7 +7,8 @@ Güzellik salonları için randevu, personel, ciro ve müşteri takip uygulamas�
 
 | Link | Kimin için | Ne yapar |
 |---|---|---|
-| `/` | Demo girişi | Şubeleri ve linklerini listeler |
+| `/` | Açılış ekranı | Doğrudan sekmeli salon paneli açılır (son açılan ya da tek şube) |
+| `/subeler` | Herkes | Şubeleri ve linklerini listeler |
 | `/sahip` | İşletme sahibi | Tüm şubelerin bu ayki cirosu, gideri, net kârı; şube ekleme; abonelik ücreti; istediği şubeye yönetici olarak geçiş |
 | `/s/<şube>` | Personel, resepsiyon, yönetici | Aynı linkten girilir, kim olduğu PIN ile belirlenir |
 | `/r/<şube>` | Müşteri | Yalnızca randevu sayfası; personel/yönetici ekranları hiç görünmez |
@@ -20,7 +21,9 @@ Güzellik salonları için randevu, personel, ciro ve müşteri takip uygulamas�
 **Diğer:** oda/cihaz listesi (aynı oda aynı saatte iki randevuya verilmez), stok ve "Azalıyor" uyarısı, personel ve salon fotoğrafı, geçen ayın kapanışı (prim hesabı için).
 **Müşteri:** hizmet seçimi (çoklu, toplam tutar ve süre), personel ya da "Fark etmez", boş saatler, telefon ve aydınlatma onayı, onay mesajı, "Randevularım" ile iptal.
 
-Telefonda tek sütun, bilgisayarda (960 px üstü) iki sütun. Telefona ve bilgisayara "Ana ekrana ekle / Uygulama olarak yükle" ile kurulur (PWA).
+Panelin üstünde sekmeler var: **Yönetici, Personel, Randevu, İşletme, Müşteri**. Sekme çubuğu kaydırınca ekranın tepesinde kalır; İşletme sekmesi sahip paneline (`/sahip`, sahip PIN'i) geçer, Müşteri sekmesi müşteri randevu linkini gösterir, açar ve paylaştırır. Müşteri linkinde (`/r/<şube>`) sekme çubuğu yoktur.
+
+Telefonda tek sütun ve büyük yazı, bilgisayarda (960 px üstü) iki sütun. Telefona ve bilgisayara "Ana ekrana ekle / Uygulama olarak yükle" ile kurulur (PWA).
 
 ### Gerçek mod ve demo modu
 Yayındaki uygulama **gerçek moddadır**: kayıtlar Cloudflare D1 veritabanında durur, müşteri kendi telefonundan randevu alır, salon panelindeki bütün cihazlar aynı kayıtları görür (açık panel 10 saniyede bir güncellenir). PIN'leri sunucu doğrular; PIN'ler tarayıcıya hiç gönderilmez.
