@@ -6,5 +6,5 @@ compatibility_date = "2026-10-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "guzellik-salonu"
-database_id = "00000000-0000-0000-0000-000000000000" # kurulumda gerçek kimlikle değişir
+database_id = "37115b04-6589-4074-827c-8dfadd2c900f"
 migrations_dir = "db/migrations"
