@@ -10,3 +10,8 @@ export function isValidTrPhone(phone: string) {
   const d = phone.replace(/\D/g, '')
   return /^(0?5\d{9}|905\d{9})$/.test(d)
 }
+
+/** Salon numarası wa.me linki kurmaya yetecek kadar tam mı (alan kodu dahil en az 10 hane) */
+export function canWhatsApp(phone: string | undefined) {
+  return String(phone || '').replace(/\D/g, '').replace(/^0+/, '').length >= 10
+}

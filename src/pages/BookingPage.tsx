@@ -16,7 +16,7 @@ import { useClock, useMoney } from '../ui/hooks'
 import { useBookingManifest } from '../ui/install'
 import { SalonHeader } from '../ui/layout'
 import { ServicePicker, SlotPicker, StaffPicker } from '../ui/pickers'
-import { isValidTrPhone } from '../ui/whatsapp'
+import { canWhatsApp, isValidTrPhone, waLink } from '../ui/whatsapp'
 import { LoadState } from './PanelPage'
 
 export function BookingPage() {
@@ -42,6 +42,8 @@ function Booking({ slug }: { slug: string }) {
   const [note, setNote] = useState('')
   const [consent, setConsent] = useState(false)
   const [okMsg, setOkMsg] = useState('')
+  /** Salona WhatsApp'tan gönderilecek hazır mesaj (talep alındıktan sonra) */
+  const [waText, setWaText] = useState('')
   const [busy, setBusy] = useState(false)
   const [slotsReady, setSlotsReady] = useState(isDemo)
   const [myList, setMyList] = useState<MyBooking[]>([])
@@ -115,6 +117,19 @@ function Booking({ slug }: { slug: string }) {
         tutar: fmt(sel.reduce((a, s) => a + s!.price, 0)),
       }),
     )
+    const uzman = staffId ? d.staff.find((x) => x.id === staffId)?.name : ''
+    setWaText(
+      t('book.waText', {
+        salon: [db.business.name, branch.name].filter(Boolean).join(' – '),
+        ad: name.trim(),
+        tel: phone.trim(),
+        gun: longDate(date, db.business.locale),
+        saat: time,
+        hizmet: sel.map((s) => s!.name).join(', '),
+      }) +
+        (uzman ? '\n' + t('book.waStaff', { uzman }) : '') +
+        (note.trim() ? '\n' + t('book.waNote', { not: note.trim() }) : ''),
+    )
     setServiceIds([])
     setTime(null)
     setNote('')
@@ -129,7 +144,17 @@ function Booking({ slug }: { slug: string }) {
         <p className="mute" style={{ margin: 0 }}>{t('book.info')}</p>
         <SalonInfo address={branch.address} phone={branch.phone} hours={branch.hours} />
       </div>
-      {okMsg && <div className="card ok" role="status">{okMsg}</div>}
+      {okMsg && (
+        <div className="card ok" role="status">
+          {okMsg}
+          {waText && canWhatsApp(branch.phone) && (
+            <a className="go block center" style={{ marginTop: 12, textDecoration: 'none' }} target="_blank" rel="noopener"
+              href={waLink(branch.phone, waText)}>
+              {t('book.notifyWhatsApp')}
+            </a>
+          )}
+        </div>
+      )}
       {myList.length > 0 && (
         <div className="card">
           <h2>{t('book.mine')}</h2>
