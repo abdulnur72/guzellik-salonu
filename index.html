@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lavin Güzellik Salonu</title>
+  <meta name="description" content="Saç, cilt bakımı, manikür-pedikür, kaş-kirpik ve ağda hizmetleri. Online randevu alın.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="header">
+    <div class="container header__inner">
+      <a href="#" class="logo">Lavin<span>Güzellik</span></a>
+      <button class="menu-toggle" aria-label="Menüyü aç" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+      <nav class="nav">
+        <a href="#hizmetler">Hizmetler</a>
+        <a href="#hakkimizda">Hakkımızda</a>
+        <a href="#randevu">Randevu</a>
+        <a href="#iletisim">İletişim</a>
+        <a href="#randevu" class="btn btn--small">Randevu Al</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- GİRİŞ -->
+    <section class="hero">
+      <div class="container hero__inner">
+        <p class="hero__eyebrow">Kendinize zaman ayırın</p>
+        <h1>Güzelliğiniz,<br><em>bizim tutkumuz.</em></h1>
+        <p class="hero__text">Uzman ekibimiz ve hijyenik ortamımızla saçtan cilde, tırnaktan kirpiğe kadar size özel bakım.</p>
+        <div class="hero__actions">
+          <a href="#randevu" class="btn">Randevu Al</a>
+          <a href="#hizmetler" class="btn btn--ghost">Hizmetlerimiz</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- HİZMETLER -->
+    <section id="hizmetler" class="section">
+      <div class="container">
+        <div class="section__head">
+          <p class="eyebrow">Neler yapıyoruz?</p>
+          <h2>Hizmetlerimiz &amp; Fiyatlar</h2>
+        </div>
+        <div class="services" id="services"></div>
+        <p class="note">* Fiyatlar örnek amaçlıdır ve değişiklik gösterebilir.</p>
+      </div>
+    </section>
+
+    <!-- HAKKIMIZDA -->
+    <section id="hakkimizda" class="section section--tint">
+      <div class="container about">
+        <div class="about__visual" aria-hidden="true">
+          <div class="about__circle"></div>
+          <div class="about__badge"><strong>10+</strong><span>yıllık deneyim</span></div>
+        </div>
+        <div>
+          <p class="eyebrow">Hakkımızda</p>
+          <h2>Kendinizi evinizde hissedeceğiniz bir salon</h2>
+          <p>Lavin Güzellik Salonu olarak her misafirimize özel ilgi gösteriyor, kaliteli ürünler ve güncel tekniklerle çalışıyoruz. Tüm aletlerimiz her kullanımdan sonra sterilize edilir.</p>
+          <ul class="features">
+            <li>Deneyimli ve sertifikalı uzmanlar</li>
+            <li>Steril ve tek kullanımlık malzemeler</li>
+            <li>Kaliteli, cilt dostu ürünler</li>
+            <li>Kolay online randevu</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- RANDEVU -->
+    <section id="randevu" class="section">
+      <div class="container">
+        <div class="section__head">
+          <p class="eyebrow">Hemen yerinizi ayırtın</p>
+          <h2>Online Randevu</h2>
+          <p>Formu doldurun, randevu talebiniz WhatsApp üzerinden bize iletilsin. En kısa sürede onaylayalım.</p>
+        </div>
+        <form class="form" id="appointment-form" novalidate>
+          <div class="form__row">
+            <label>Ad Soyad
+              <input type="text" name="name" required autocomplete="name" placeholder="Adınız Soyadınız">
+            </label>
+            <label>Telefon
+              <input type="tel" name="phone" required autocomplete="tel" placeholder="05xx xxx xx xx">
+            </label>
+          </div>
+          <label>Hizmet
+            <select name="service" required id="service-select">
+              <option value="">Hizmet seçin</option>
+            </select>
+          </label>
+          <div class="form__row">
+            <label>Tarih
+              <input type="date" name="date" required>
+            </label>
+            <label>Saat
+              <select name="time" required id="time-select">
+                <option value="">Saat seçin</option>
+              </select>
+            </label>
+          </div>
+          <label>Not (isteğe bağlı)
+            <textarea name="note" rows="3" placeholder="Eklemek istediğiniz bir şey var mı?"></textarea>
+          </label>
+          <p class="form__error" id="form-error" role="alert"></p>
+          <button type="submit" class="btn btn--full">WhatsApp ile Randevu Talep Et</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- İLETİŞİM -->
+    <section id="iletisim" class="section section--tint">
+      <div class="container contact">
+        <div>
+          <p class="eyebrow">Bize ulaşın</p>
+          <h2>İletişim</h2>
+          <ul class="contact__list">
+            <li><strong>Adres</strong>Örnek Mah. Çiçek Sok. No: 12, Kadıköy / İstanbul</li>
+            <li><strong>Telefon</strong><a href="tel:+905000000000">0500 000 00 00</a></li>
+            <li><strong>Instagram</strong><a href="https://instagram.com/" target="_blank" rel="noopener">@lavinguzellik</a></li>
+          </ul>
+          <h3>Çalışma Saatleri</h3>
+          <ul class="hours">
+            <li><span>Pazartesi – Cuma</span><span>09:00 – 20:00</span></li>
+            <li><span>Cumartesi</span><span>09:00 – 18:00</span></li>
+            <li><span>Pazar</span><span>Kapalı</span></li>
+          </ul>
+        </div>
+        <div class="map">
+          <iframe title="Salon konumu" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+            src="https://www.google.com/maps?q=Kad%C4%B1k%C3%B6y%2C%20%C4%B0stanbul&output=embed"></iframe>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>© <span id="year"></span> Lavin Güzellik Salonu. Tüm hakları saklıdır.</p>
+    </div>
+  </footer>
+
+  <a class="wa-float" id="wa-float" href="#" target="_blank" rel="noopener" aria-label="WhatsApp ile yazın">
+    <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor" aria-hidden="true"><path d="M17.5 14.4c-.3-.1-1.7-.8-2-.9-.3-.1-.5-.1-.7.1-.2.3-.8.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.4-.5c.2-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-.9-2.2c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.1 4.9 4.3 2.4 1 2.9.8 3.4.7.5-.1 1.7-.7 2-1.4.2-.7.2-1.3.2-1.4-.1-.1-.3-.2-.6-.3zM12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.6 0-3.1-.4-4.4-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2z"/></svg>
+  </a>
+
+  <script src="script.js"></script>
+</body>
+</html>
