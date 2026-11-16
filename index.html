@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lila Güzellik Salonu</title>
+<meta name="theme-color" content="#B83A74">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Lila">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon.svg">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap">
+<style>
+:root{--bg:#FBF4F6;--card:#fff;--ink:#2B1330;--mute:#7B6680;--line:#E4D2DD;--acc:#B83A74;--on:#fff;--seg:#F6E7EE;--edge:#DDB0C6;--ok:#3E8E74;--bad:#C0443B;--font:Manrope,system-ui,sans-serif;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1B0F1E;--card:#2A1A2E;--ink:#F6E9F1;--mute:#B79FBE;--line:#4A3350;--acc:#E26AA0;--on:#2d0b18;--seg:#3A2540;--edge:#7A4A6C;--ok:#6CC2A4;--bad:#F08077;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1B0F1E;--card:#2A1A2E;--ink:#F6E9F1;--mute:#B79FBE;--line:#4A3350;--acc:#E26AA0;--on:#2d0b18;--seg:#3A2540;--edge:#7A4A6C;--ok:#6CC2A4;--bad:#F08077;color-scheme:dark}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.5;font-variant-numeric:tabular-nums}
+.pole{height:3px;background:var(--acc)}
+.wrap{max-width:720px;margin:0 auto;padding:20px 16px 40px}
+header{margin-bottom:14px}
+h1{font-size:22px;line-height:1.2;margin:0;font-weight:700;letter-spacing:-.01em}
+.sub{color:var(--mute);font-size:14px;margin-top:2px}
+select,input,textarea{font:inherit;color:var(--ink);background:var(--seg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%}
+select:focus-visible,input:focus-visible,button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.tabs{display:flex;gap:2px;background:var(--seg);border-radius:10px;padding:3px;margin-bottom:16px}
+.tabs button{flex:1 1 0;min-width:0;border:0;background:transparent;color:var(--mute);font:inherit;font-weight:600;font-size:clamp(11px,3.2vw,15px);padding:9px 2px;border-radius:8px;cursor:pointer;white-space:nowrap;overflow:hidden}
+.tabs button[aria-pressed="true"]{background:var(--acc);color:var(--on)}
+.card{background:var(--card);border:1px solid var(--edge);border-radius:10px;padding:16px;margin-bottom:14px}
+.card h2{font-size:15px;font-weight:700;margin:0 0 6px}
+label{display:block;font-size:13px;font-weight:600;color:var(--mute);margin:14px 0 6px}
+.row{display:flex;gap:10px}.row>*{flex:1}
+.go{width:100%;margin-top:18px;border:0;background:var(--acc);color:var(--on);font:inherit;font-weight:700;font-size:16px;padding:14px;border-radius:10px;cursor:pointer;text-transform:uppercase;letter-spacing:.03em}
+.btn2{border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-weight:600;font-size:14px;padding:9px 14px;border-radius:8px;cursor:pointer}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.stat{background:var(--card);border:1px solid var(--edge);border-radius:10px;padding:14px 12px}
+.stat span{display:block;font-size:12px;font-weight:600;color:var(--mute);margin-bottom:6px}
+.stat b{display:block;color:var(--acc);font-size:20px;line-height:1.1;font-weight:700}
+.list{list-style:none;margin:0;padding:0}
+.list li{display:flex;justify-content:space-between;gap:8px;padding:10px 0;border-top:1px solid var(--line);font-size:14px}
+.list li:first-child{border-top:0}
+.ap{flex-wrap:wrap;align-items:center}.dn{text-decoration:line-through;opacity:.6}
+.mute{color:var(--mute)}.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:right;padding:10px 8px;border-top:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-size:12px;color:var(--mute);font-weight:600;border-top:0}
+td input{width:68px;padding:6px 8px;text-align:right}
+.chip{display:inline-block;font-size:12px;font-weight:600;color:var(--mute);border:1px solid var(--line);border-radius:99px;padding:2px 10px;margin-top:8px}
+.empty{color:var(--mute);padding:6px 0}
+.brand{display:flex;gap:12px;align-items:center}
+.logo{width:56px;height:56px;overflow:hidden;flex:none;border:1px solid var(--edge);border-radius:12px;display:grid;place-items:center;color:var(--acc)}
+.eyebrow{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--acc)}
+.strip{background:var(--seg);color:var(--acc);font-size:13px;text-align:center;padding:10px 12px;border-radius:8px;margin-bottom:14px}
+.orn{display:flex;align-items:center;gap:10px;margin:0 0 14px;color:var(--acc)}.orn i{flex:1;height:1px;background:var(--line)}
+.owner{position:relative;display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--edge);border-radius:10px;padding:12px 14px;margin-bottom:24px}
+.owner::after{content:"";position:absolute;left:42px;bottom:-9px;width:16px;height:16px;background:var(--card);border-right:1px solid var(--edge);border-bottom:1px solid var(--edge);transform:rotate(45deg)}
+.sq{width:72px;height:72px;flex:none;border-radius:10px;border:1px solid var(--edge);background:var(--seg);color:var(--acc);display:grid;place-items:center;overflow:hidden;font-weight:700;font-size:26px}
+.sq img{width:100%;height:100%;object-fit:cover}
+.pick{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(72px,1fr);gap:10px;overflow-x:auto;padding-bottom:4px}
+.pk{background:var(--seg);border:1px solid var(--line);border-radius:10px;padding:8px 6px;color:var(--ink);font:inherit;font-weight:600;font-size:13px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+.pk[aria-pressed="true"]{border-color:var(--acc);background:var(--card);box-shadow:inset 0 0 0 1px var(--acc)}
+.pick .pk .sq{width:100%;height:auto;aspect-ratio:1;font-size:22px}
+.pk .n{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.qk{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px}.qk .pk{padding:12px 8px;font-size:14px;text-align:center}.qk .pk b{font-weight:700}.qk .pk span{font-size:12px;font-weight:500}
+.catbar{display:flex;flex-wrap:wrap;gap:8px;padding-bottom:6px}
+.pill{flex:none;white-space:nowrap;border:1px solid var(--line);background:var(--seg);color:var(--ink);font:inherit;font-weight:600;font-size:13px;padding:7px 14px;border-radius:99px;cursor:pointer}
+.pill[aria-pressed="true"]{background:var(--acc);border-color:var(--acc);color:var(--on)}
+.slots{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.slots button{border:1px solid var(--line);background:var(--seg);color:var(--ink);font:inherit;font-weight:600;padding:9px 0;border-radius:8px;cursor:pointer}
+.slots button[aria-pressed="true"]{background:var(--acc);border-color:var(--acc);color:var(--on)}
+.slots button:disabled{opacity:.3;text-decoration:line-through;cursor:default}
+.ok{color:var(--ok);font-weight:700}
+summary{cursor:pointer;font-weight:700}
+/* ---- Uygulama görünümü: büyük yazı, telefonda tam ekran ---- */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{font-size:17px;line-height:1.55;-webkit-tap-highlight-color:transparent;overscroll-behavior-y:none;min-height:100dvh}
+.wrap{padding:18px 16px calc(40px + env(safe-area-inset-bottom,0px))}
+h1{font-size:26px}
+.sub{font-size:16px}
+.chip{font-size:14px;padding:3px 12px}
+.logo{width:64px;height:64px;border-radius:16px}
+select,input,textarea{font-size:17px;padding:13px 14px;border-radius:12px;min-height:50px}
+input[type=checkbox]{min-height:0;width:22px!important;height:22px}
+label{font-size:15px;margin:16px 0 8px}
+.tabs{position:sticky;top:0;z-index:20;margin:0 -16px 18px;padding:8px 10px;border-radius:0;background:var(--bg);box-shadow:0 1px 0 var(--line);gap:4px;padding-top:calc(8px + env(safe-area-inset-top,0px))}
+.tabs button{font-size:clamp(13px,3.7vw,17px);font-weight:700;padding:12px 2px;border-radius:12px;background:var(--seg);min-height:48px}
+.tabs button[aria-pressed="true"]{box-shadow:0 2px 8px rgba(184,58,116,.3)}
+.card{border-radius:16px;padding:18px;margin-bottom:16px}
+.card h2{font-size:19px;margin:0 0 8px}
+.go{font-size:18px;padding:16px;border-radius:14px;min-height:56px}
+.btn2{font-size:16px;padding:11px 16px;border-radius:12px;min-height:46px}
+.stat{border-radius:14px;padding:14px 12px}
+.stat span{font-size:14px}
+.stat b{font-size:clamp(17px,5vw,24px)}
+.list li{font-size:16px;padding:12px 0}
+table{font-size:16px}
+th{font-size:14px}
+.strip{font-size:15px;padding:12px 14px;border-radius:12px}
+.owner{border-radius:16px}
+.owner .eyebrow{font-size:14px}
+.pk{font-size:15px;border-radius:14px}
+.qk .pk{font-size:16px;padding:14px 10px;min-height:72px}
+.qk .pk span{font-size:14px}
+.pill{font-size:15px;padding:10px 16px;min-height:44px}
+.slots button{font-size:16px;padding:12px 0;border-radius:10px;min-height:48px}
+.empty{font-size:16px}
+.mute{font-size:inherit}
+/* Müşteri linki (/r/...): yalnızca randevu sayfası */
+body.mus .tabs,body.mus .orn{display:none}
+body.mus .wrap{padding-top:calc(18px + env(safe-area-inset-top,0px))}
+@media (min-width:760px){.tabs{margin:0 0 18px;border-radius:14px}}
+</style>
+</head>
+<body>
+<div class="pole"></div>
+<div class="wrap">
+<header id="hd"></header>
+<div class="orn" aria-hidden="true"><i></i><svg viewBox="0 0 40 40" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="20" cy="10" r="6"/><circle cx="20" cy="30" r="6"/><circle cx="10" cy="20" r="6"/><circle cx="30" cy="20" r="6"/><circle cx="20" cy="20" r="2.5"/></svg><i></i></div>
+<nav class="tabs" id="tabs" role="group" aria-label="Görünüm"></nav>
+<div id="app"></div>
+</div>
+<script>
+const uid=()=>Math.random().toString(36).slice(2,8);
+const e=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=m=>String(m/60|0).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
+const toM=t=>+t.slice(0,2)*60+ +t.slice(3);
+const TL=n=>Math.round(n).toLocaleString('tr-TR')+' ₺';
+const iso=d=>new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);
+const CUT=()=>{try{const h=S&&S.cut;return h==null||h===""?4:+h}catch(e){return 4}};const today=()=>iso(new Date(Date.now()-CUT()*36e5));
+const addDay=(d,n)=>{const x=new Date(d+'T12:00');x.setDate(x.getDate()+n);return iso(x)};
+const gunAd=d=>new Date(d+'T12:00').toLocaleDateString('tr-TR',{weekday:'long',day:'numeric',month:'long'});
+const sum=l=>l.reduce((t,a)=>t+a.fiyat,0);
+/* [işlem, süre dk, fiyat ₺] */
+const CAT=[
+['El & Tırnak',[['Manikür',45,300],['Spa manikür',60,450],['Pedikür',60,350],['Spa pedikür',75,500],['Medikal pedikür',60,600],['Oje (klasik) el',30,150],['Oje (klasik) ayak',30,150],['Kalıcı oje el',60,450],['Kalıcı oje ayak',45,400],['Jel tırnak (yeni set)',90,700],['Protez tırnak (porselen/akrilik)',120,900],['Protez tırnak dolgu / bakım',90,600],['Tırnak güçlendirme (BIAB)',60,500],['Nail art (tırnak başına)',10,50],['French / ombre uygulaması',20,150],['Kalıcı oje / jel çıkarma',20,100],['Tırnak şekillendirme ve törpüleme',20,100],['Nasır / çatlak bakımı',30,250],['Parafin el bakımı',30,300],['Parafin ayak bakımı',30,300]]],
+['Kaş & Kirpik',[['Kaş alımı (cımbız / iplik)',20,150],['Kaş tasarımı + kına',30,250],['Kaş boyama',20,150],['Kaş laminasyonu',45,600],['Microblading',120,3500],['Pudra / ombre kaş',120,3500],['Kirpik lifting',60,800],['Kirpik perması',60,700],['Kirpik boyama',20,150],['İpek kirpik (klasik)',120,1200],['İpek kirpik (volume)',150,1600],['İpek kirpik dolgu',75,700],['Kirpik çıkarma',20,150],['Bıyık / yüz iplik',15,100],['Yüz tüyü alımı (komple)',30,250]]],
+['Ağda',[['Bacak ağda (komple)',45,450],['Yarım bacak ağda',30,300],['Kol ağda',30,250],['Koltuk altı ağda',15,150],['Bikini ağda',30,350],['Tam bikini / genital bölge',40,450],['Göbek ağda',15,150],['Sırt ağda',30,250],['Yüz ağda',20,150],['Kaş / bıyık / çene ağda',15,100],['Sir ağda (şeker)',45,450],['Tam vücut ağda',120,1500]]],
+['Epilasyon (Lazer)',[['Lazer: tam vücut',90,2500],['Lazer: bacak (komple)',45,1200],['Lazer: yarım bacak',30,700],['Lazer: kol',30,700],['Lazer: koltuk altı',15,400],['Lazer: bikini',30,700],['Lazer: tam bikini',40,900],['Lazer: yüz (komple)',20,500],['Lazer: üst dudak / çene',10,250],['Lazer: sırt',30,600],['Lazer: göbek / bel',15,350],['Lazer: popo',20,450],['İğneli epilasyon (bölgesel)',30,400],['IPL fotoepilasyon seansı',45,900]]],
+['Cilt Bakımı',[['Klasik cilt bakımı',60,700],['Derin cilt temizliği',75,800],['Hydrafacial',60,1500],['Akne / sivilce bakımı',60,900],['Leke bakımı',60,1000],['Anti-aging bakım',75,1200],['Nem / oksijen bakımı',60,900],['Kimyasal peeling',45,900],['Karbon peeling',45,1000],['Dermapen / mikroiğneleme',60,1800],['Mezoterapi (cilt)',45,2000],['Radyofrekans yüz sıkılaştırma',45,1200],['Göz çevresi bakımı',30,500],['Dudak bakımı',20,300],['Altın / kolajen maske',30,500],['Kaş-kirpik sonrası cilt dinlendirme',15,200]]],
+['Vücut & Masaj',[['Klasik masaj',60,800],['Rahatlatıcı / aromaterapi masajı',60,900],['Medikal / spor masajı',60,900],['Sıcak taş masajı',75,1000],['Selülit masajı',45,700],['Lenf drenaj',60,800],['Bölgesel incelme (G5 / kavitasyon)',45,600],['Vakum / bölgesel zayıflama',45,600],['Vücut peelingi',45,600],['Çamur / mineral sargı',60,800],['Hamam (kese + köpük)',45,500],['Sauna / buhar kullanımı',30,300],['Sırt / boyun masajı',30,450],['Ayak masajı (refleksoloji)',30,450],['Anne adayı masajı',60,900],['Spa paketi (masaj + bakım)',120,1500]]],
+['Saç',[['Saç kesimi',45,400],['Fön',30,250],['Maşa / dalga',30,300],['Topuz / örgü / özel saç',60,600],['Ense / bakım kesimi',20,150],['Dip boya',90,1200],['Tüm saç boya',120,1500],['Röfle',150,2500],['Balayaj / ombre',180,2800],['Renk açma / dekolorasyon',120,2000],['Keratin bakımı',120,1800],['Brezilya fönü',90,1500],['Saç botoksu',90,1500],['Kolajen / protein bakımı',45,600],['Saç maskesi + bakım',30,500],['Kafa derisi bakımı',45,500],['Perma',90,1000],['Saç düzleştirme',120,1800],['Kaynak saç (mikro / tel)',180,4000]]],
+['Makyaj & Gelin',[['Günlük makyaj',45,700],['Özel gün makyajı',60,1000],['Gelin makyajı',90,2500],['Gelin başı (saç)',120,3000],['Gelin paketi (makyaj + saç)',240,6000],['Nişan / kına makyaj + saç',150,3500],['Prova (makyaj / saç)',90,1500],['Kalıcı makyaj: dudak',120,3000],['Kalıcı makyaj: eyeliner',90,2500],['Takma kirpik uygulama',15,200],['Kına gecesi paketi (grup)',180,5000]]],
+['Seanslı Paketler',[['Lazer paketi: bacak (6 seans)',45,6000,0,6],['Lazer paketi: koltuk altı (6 seans)',15,2000,0,6],['Lazer paketi: bikini (6 seans)',30,3500,0,6],['Lazer paketi: tüm vücut (6 seans)',90,12500,0,6],['Cilt bakımı paketi (6 seans)',60,3600,0,6],['Hydrafacial paketi (4 seans)',60,5500,0,4],['Selülit masajı paketi (10 seans)',45,6000,0,10],['Bölgesel incelme paketi (10 seans)',45,5000,0,10],['Ağda paketi: bacak (5 seans)',45,2000,0,5]]],
+['Diğer',[['Özel işlem (fiyatı sen yaz)',30,0],['Danışma / ücretsiz analiz',20,0],['Ürün satışı',5,0],['Hediye çeki',5,0]]]
+];
+function seed(){return{salon:'Lila Güzellik Salonu',ver:2,
+ services:CAT.flatMap(c=>c[1].map(x=>({id:uid(),k:c[0],ad:x[0],sure:x[1],fiyat:x[2],ps:x[4]}))),
+ staff:[{id:uid(),ad:'Ayşe',prim:40},{id:uid(),ad:'Elif',prim:35},{id:uid(),ad:'Selin',prim:40}],
+ customers:[],appts:[],gider:[],pin:'1234'}}
+let S=null;try{S=JSON.parse(localStorage.getItem('lila-v2'))}catch(x){}
+if(!S){S=seed();try{const o=JSON.parse(localStorage.getItem('salon-v1'));if(o)['salon','staff','customers','appts','gider','pin','logo'].forEach(k=>{if(o[k]!=null)S[k]=o[k]})}catch(x){}}
+S.gider=S.gider||[];S.pin=S.pin||'1234';
+let R=null;try{R=JSON.parse(localStorage.getItem('lila-v3'))}catch(x){}
+if(!R||!R.subeler||!R.subeler.length){R={isl:S.salon,opin:'1234',aktif:0,subeler:[{id:uid(),ad:'Merkez',d:S}]}}
+R.opin=R.opin||'1234';R.ilk=R.ilk==null?500:R.ilk;R.ek=R.ek==null?250:R.ek;R.aktif=Math.min(R.aktif||0,R.subeler.length-1);S=R.subeler[R.aktif].d;S.gider=S.gider||[];S.pin=S.pin||'1234';
+const save=()=>{try{R.subeler[R.aktif].d=S;localStorage.setItem('lila-v3',JSON.stringify(R))}catch(x){}};
+let MY=[];try{MY=JSON.parse(localStorage.getItem('lila-my'))||[]}catch(x){}
+const saveMy=()=>{try{localStorage.setItem('lila-my',JSON.stringify(MY))}catch(x){}};
+const newW=()=>({hz:[],pid:null,cat:0,tut:null,kn:'',tarih:today(),saat:null,ad:'',tel:'',not:''});
+const MUS=/^\/r\/[^/]+/.test(location.pathname)||/^#\/?r\//.test(location.hash);if(MUS)document.body.classList.add('mus');
+let CQ='',CO=null,MOK='',GI='',GM='',PS=null,tab=MUS?'m':'p',U=null,B=false,OW=false,D=today(),KW=newW(),AW=newW(),RP='',MSG='';
+let MW=newW();const Wm=k=>k==='K'?KW:k==='M'?MW:AW;
+const svc=id=>S.services.find(s=>s.id===id),stf=id=>S.staff.find(s=>s.id===id),cus=id=>S.customers.find(c=>c.id===id);
+const names=a=>(a.hn||a.hz.map(i=>(svc(i)||{ad:'Silinmiş işlem'}).ad)).join(', ');
+const done=a=>a.durum==='Geldi';
+const pay=(pid,a,b)=>{const p=stf(pid);return p?sum(S.appts.filter(x=>done(x)&&x.pid===pid&&x.tarih>=a&&x.tarih<=b))*p.prim/100:0};
+const cname=a=>(cus(a.cid)||{}).ad||'';
+const wa=(tel,msg)=>{let t=String(tel||'').replace(/\D/g,'');if(t[0]==='0')t='90'+t.slice(1);else if(t.length===10)t='90'+t;return 'https://wa.me/'+t+'?text='+encodeURIComponent(msg)};
+const av=(p,s)=>`<span style="display:inline-grid;place-items:center;vertical-align:middle;width:${s}px;height:${s}px;border-radius:50%;background:var(--ac2);overflow:hidden;font-weight:700;color:var(--ac);flex:none">${p.foto?`<img src="${p.foto}" alt="" style="width:100%;height:100%;object-fit:cover">`:e((p.ad||'?')[0])}</span>`;
+const cats=()=>[...new Set(S.services.map(s=>s.k))];
+function getCus(ad,tel){if(!ad)return null;let c=S.customers.find(q=>q.ad.toLowerCase()===ad.toLowerCase());if(!c){c={id:uid(),ad,tel:tel||''};S.customers.push(c)}else if(tel)c.tel=tel;return c.id}
+const FLW='<svg viewBox="0 0 40 40" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="20" cy="10" r="6"/><circle cx="20" cy="30" r="6"/><circle cx="10" cy="20" r="6"/><circle cx="30" cy="20" r="6"/><circle cx="20" cy="20" r="2.5"/></svg>';
+const per=(pid,a,b)=>{const x=S.appts.filter(q=>done(q)&&(pid==null||q.pid===pid)&&q.tarih>=a&&q.tarih<=b);return{n:x.length,c:sum(x),p:x.reduce((s,q)=>s+q.fiyat*((stf(q.pid)||{prim:0}).prim)/100,0)}};
+const tbl=(h,rows)=>`<div class="scroll"><table><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr>${rows.map(r=>`<tr>${r.map(x=>`<td>${x}</td>`).join('')}</tr>`).join('')}</table></div>`;
+const tile=(p,on)=>`<button class="pk" aria-pressed="${on}" data-a="gir" data-id="${p.id}"><span class="sq">${p.foto?`<img src="${p.foto}" alt="">`:e((p.ad||'?')[0])}</span><span class="n">${e(p.ad)}</span></button>`;
+function pick(W,k){
+ const HID=['Özel işlem (fiyatı sen yaz)','Ürün satışı','Hediye çeki'],all=k==='M'?S.services.filter(s=>!HID.includes(s.ad)):S.services,cl=[...new Set(all.map(s=>s.k))],sel=W.hz.map(svc).filter(Boolean),tot=sel.reduce((t,s)=>t+s.fiyat,0),dur=sel.reduce((t,s)=>t+s.sure,0);
+ if(W.cat>=cl.length)W.cat=0;
+ return `<label>Hizmet</label><div class="catbar">${cl.map((c,i)=>{const n=sel.filter(s=>s.k===c).length;return `<button class="pill" aria-pressed="${W.cat===i}" data-a="cat" data-w="${k}" data-i="${i}">${e(c)}${n?' · '+n:''}</button>`}).join('')}</div>
+ <div class="qk">${all.filter(s=>s.k===cl[W.cat]).map(s=>`<button class="pk" aria-pressed="${W.hz.includes(s.id)}" data-a="hz" data-w="${k}" data-id="${s.id}"><b>${e(s.ad)}</b><span class="mute">${s.fiyat?TL(s.fiyat)+' · ':''}${s.sure} dk</span></button>`).join('')}</div>
+ ${sel.length?`<p class="mute" style="margin:10px 0 0">Seçilen: ${sel.map(s=>e(s.ad)).join(', ')}</p>`:''}<p class="selTot" style="margin:8px 0 0"><b>Toplam ${TL(tot)}</b> · ${dur} dk</p>`}
+function vHd(){return `<div class="brand"><div class="logo">${S.logo?`<img src="${S.logo}" alt="" style="width:100%;height:100%;object-fit:cover">`:FLW}</div><div><h1>${e(S.salon)}</h1><div class="sub">${MUS?'Online randevu':'Güzellik salonu takip sistemi'}</div>${MUS?'':'<span class="chip">Demo: kayıtlar bu telefonda</span>'}${!MUS&&R.subeler.length>1?`<select id="sb" aria-label="Şube" style="display:block;margin-top:6px">${R.subeler.map((s,i)=>`<option value="${i}"${i===R.aktif?' selected':''}>${e(s.ad)}</option>`).join('')}</select>`:''}</div></div>`}
+function owner(){return `<div class="owner"><div class="sq">${S.logo?`<img src="${S.logo}" alt="">`:e((S.owner||S.salon||'L')[0])}</div><div><div class="eyebrow">Salon sahibi</div><div style="font-weight:700;font-size:17px">${e(S.owner||S.salon)}</div></div></div>`}
+function vPers(){
+ let h=`<div class="strip">Çalışan görünümü • Yalnızca senin verilerin</div><div class="card"><h2>Kimsin? Adına dokun</h2><div class="pick">${S.staff.map(p=>tile(p,(U||PS)===p.id)).join('')}</div></div>`;
+ if(U===null&&PS){const p=stf(PS);h+=`<div class="card"><h2>${e(p.ad)}</h2><p class="mute" style="margin:0">${p.pin?'Kişisel PIN’ini gir.':'İlk girişin: 4 haneli kişisel bir PIN belirle.'}</p><label for="spin">Kişisel PIN</label><input id="spin" type="password" inputmode="numeric" maxlength="8" autocomplete="off"><button class="go" data-a="pinGo">Gir</button></div>`}
+ if(U!==null&&isR()){h+=respView()}else if(U!==null){
+  const t=today(),w=addDay(t,-6),m=t.slice(0,7)+'-01',pr=KW.hz.map(svc).filter(Boolean).reduce((s,x)=>s+x.fiyat,0),bu=per(U,t,t);
+  const td=S.appts.filter(a=>a.pid===U&&done(a)&&a.tarih===t).sort((a,b)=>b.saat.localeCompare(a.saat)),pp=(stf(U)||{prim:0}).prim;
+  h+=`<div class="card"><h2>Yeni müşteri</h2>${pick(KW,'K')}<label for="kn">Müşteri adı (isteğe bağlı)</label><input id="kn" value="${e(KW.kn)}" autocomplete="off"><label for="kt">Tutar (boşsa ${TL(pr)})</label><input id="kt" type="number" inputmode="decimal" value="${KW.tut==null?'':e(KW.tut)}" placeholder="${pr}"><label for="ko">Ödeme</label><select id="ko"><option${KW.o==='Kart'?'':' selected'}>Nakit</option><option${KW.o==='Kart'?' selected':''}>Kart</option></select><button class="go" data-a="kk">Müşteriyi kaydet</button></div>
+  <div class="stats"><div class="stat"><span>Bugün müşteri</span><b>${bu.n}</b></div><div class="stat"><span>Bugün ciro</span><b>${TL(bu.c)}</b></div><div class="stat"><span>Bugün payım</span><b>${TL(bu.p)}</b></div></div>
+  <div class="card"><h2>Cirom</h2>${tbl(['Dönem','Ciro','Payım (%'+pp+')'],[['Bugün',t,t],['Son 7 gün',w,t],['Bu ay',m,t]].map(x=>{const r=per(U,x[1],x[2]);return[x[0],TL(r.c),TL(r.p)]}))}</div>
+  <div class="card"><h2>Bugünkü müşterilerim</h2><ul class="list">${td.map(a=>`<li><span>${a.saat} · ${e(cname(a)||'İsimsiz')}<br><span class="mute">${e(names(a))}</span></span><span>${TL(a.fiyat)}${a.walk?` <button class="btn2" data-a="aSil" data-id="${a.id}">Sil</button>`:''}</span></li>`).join('')||'<li class="empty">Bugün henüz müşteri yok.</li>'}</ul></div>
+  ${custCard()}
+  <button class="btn2" data-a="cik" style="width:100%;margin-bottom:14px">Çıkış yap</button>`}
+ return h+`<div class="strip">Diğer çalışanların kazançlarını göremezsin • Fiyatları değiştiremezsin</div>`}
+function ali(a){const c=cus(a.cid)||{ad:'',tel:''},bs=a.durum==='Bekliyor';
+ return `<li class="ap"><span class="${a.durum==='İptal'||a.durum==='Gelmedi'?'dn':''}"><b>${a.tarih.slice(8)}.${a.tarih.slice(5,7)} ${a.saat}</b> · ${e(c.ad||'İsimsiz')}<br><span class="mute">${e(names(a))}${(B||isR())?' · '+e((stf(a.pid)||{}).ad):''}${isR()?'':' · '+TL(a.fiyat)+(a.odeme?' · '+a.odeme:'')}${a.oda?' · '+e(a.oda):''}${a.not?' · '+e(a.not):''}</span></span><span style="display:flex;gap:6px;flex-wrap:wrap;width:100%;margin-top:6px">${bs?`<button class="btn2" data-a="gel" data-id="${a.id}" data-o="Nakit">Geldi · Nakit</button><button class="btn2" data-a="gel" data-id="${a.id}" data-o="Kart">Geldi · Kart</button><button class="btn2" data-a="dur" data-id="${a.id}" data-d="Gelmedi">Gelmedi</button><button class="btn2" data-a="dur" data-id="${a.id}" data-d="İptal">İptal</button>${c.tel?`<a class="btn2" style="text-decoration:none" href="${wa(c.tel,'Merhaba '+c.ad+', '+S.salon+' randevunuz: '+gunAd(a.tarih)+' saat '+a.saat+' ('+names(a)+'). Görüşmek üzere!')}" target="_blank" rel="noopener">Hatırlat</a>`:''}`:`<span class="chip" style="margin:0">${a.iptalM?'Müşteri iptal etti':a.durum}</span><button class="btn2" data-a="dur" data-id="${a.id}" data-d="Bekliyor">Geri al</button>`}</span></li>`}
+function vRand(){
+ if(!B&&U===null)return `<div class="strip">Randevular • Her personel yalnızca kendi randevularını görür</div><div class="card"><h2>Önce giriş yap</h2><p class="mute">Randevuları görmek için personel ya da yönetici olarak giriş yapmalısın.</p><div class="row"><button class="btn2" data-a="tab" data-t="p">Personel girişi</button><button class="btn2" data-a="tab" data-t="y">Yönetici girişi</button></div></div>`;
+ if(!B&&!isR())AW.pid=U;
+ const t=today(),mine=(B||isR())?S.appts:S.appts.filter(a=>a.pid===U),up=mine.filter(a=>a.tarih>=t&&!a.walk&&a.durum!=='Onay bekliyor').sort((a,b)=>(a.tarih+a.saat).localeCompare(b.tarih+b.saat)),old=mine.filter(a=>a.tarih<t&&!a.walk&&a.durum==='Bekliyor'),m=MSG;MSG='';
+ return `<div class="strip">Randevular • Her personel yalnızca kendi randevularını görür</div>${m?`<div class="card ok">${m}</div>`:''}
+ <div class="card"><h2>Yeni randevu</h2>${(B||isR())?`<label>Personel</label><div class="pick">${S.staff.map(p=>`<button class="pk" aria-pressed="${AW.pid===p.id}" data-a="ap" data-id="${p.id}"><span class="sq">${p.foto?`<img src="${p.foto}" alt="">`:e(p.ad[0])}</span><span class="n">${e(p.ad)}</span></button>`).join('')}</div>`:''}
+ ${odaSel()}<label for="wn">Müşteri adı</label><input id="wn" value="${e(AW.ad)}" autocomplete="off"><label for="wp">Telefon (WhatsApp hatırlatma için)</label><input id="wp" type="tel" inputmode="tel" value="${e(AW.tel)}" placeholder="05xx xxx xx xx" autocomplete="off">
+ ${pick(AW,'A')}<label for="wt">Tarih</label><input id="wt" type="date" min="${t}" value="${AW.tarih}"><label>Saat</label>${slots(AW,'A')}<label for="wo">Not (isteğe bağlı)</label><input id="wo" value="${e(AW.not)}" placeholder="Alerji, istek, özel durum"><button class="go" data-a="aKaydet">Randevuyu ekle</button></div>
+ ${old.length?`<div class="card"><h2>İşaretlenmemiş geçmiş randevular</h2><ul class="list">${old.map(ali).join('')}</ul></div>`:''}
+ ${pendCard(mine)}${remCard(mine)}<div class="card"><h2>Yaklaşan randevular</h2><ul class="list">${up.map(ali).join('')||'<li class="empty">Yaklaşan randevu yok.</li>'}</ul></div>`}
+function vYon(){
+ if(!B)return `<section class="card"><h2>Yönetici girişi</h2><p class="mute" style="margin:0 0 8px">Ciro, gider ve net kâr yalnızca patrona açıktır. Demo PIN: 1234</p><label for="pin">PIN</label><input id="pin" type="password" inputmode="numeric" maxlength="8" autocomplete="off"><button class="go" data-a="girY">Gir</button></section>`;
+ const t=today(),w=addDay(t,-6),m=t.slice(0,7)+'-01',pm=per(null,m,t),gm=S.gider.filter(g=>g.tarih.slice(0,7)===t.slice(0,7)),gt=gm.reduce((s,g)=>s+g.tutar,0),cl=cats();
+ const dn=S.appts.filter(a=>done(a)&&a.tarih>=m);
+ return `<div class="strip">Yönetici görünümü • Ciro, gider ve net kâr yalnızca sende</div>
+ <div class="stats">${[['Bugün',t,t],['7 gün',w,t],['Bu ay',m,t]].map(x=>`<div class="stat"><span>${x[0]} ciro</span><b>${TL(per(null,x[1],x[2]).c)}</b></div>`).join('')}</div>
+ <div class="card"><h2>Haftalık ve aylık ciro</h2>${tbl(['Dönem','Ciro','Personel payı','Patron payı'],[['Bugün',t,t],['Son 7 gün',w,t],['Bu ay',m,t]].map(x=>{const r=per(null,x[1],x[2]);return[x[0],TL(r.c),TL(r.p),TL(r.c-r.p)]}))}<p class="mute" style="margin:10px 0 0">Bu ay nakit ${TL(sum(dn.filter(x=>x.odeme==='Nakit')))} · kart ${TL(sum(dn.filter(x=>x.odeme==='Kart')))}. Ciroya yalnızca “Geldi” işaretlenenler girer.</p></div>
+ <div class="card"><h2>Gider ve net kâr (bu ay)</h2><p style="margin:0">Ciro ${TL(pm.c)}<br>Personel payı −${TL(pm.p)}<br>Giderler −${TL(gt)}<br><b>Net kâr ${TL(pm.c-pm.p-gt)}</b></p><ul class="list" style="margin-top:8px">${gm.map(g=>`<li><span>${g.tarih.slice(8)}.${g.tarih.slice(5,7)} · ${e(g.ad)}</span><span>${TL(g.tutar)} <button class="btn2" data-a="gSil" data-id="${g.id}">Sil</button></span></li>`).join('')}</ul><label for="gn">Gider (kira, fatura, malzeme)</label><input id="gn"><label for="gt">Tutar (₺)</label><input id="gt" type="number" inputmode="numeric"><button class="go" data-a="gEkle">Gider ekle</button></div>
+ ${stokCard()}${odaCard()}${custCard()}<div class="card"><h2>Personel bazında (bu ay)</h2>${tbl(['Personel','Müşteri','Ciro','Personel payı','Patron payı','Oran %'],S.staff.map(p=>{const r=per(p.id,m,t);return[e(p.ad),r.n,TL(r.c),TL(r.p),TL(r.c-r.p),`<input type="number" value="${p.prim}" data-pr="${p.id}">`]}))}</div>
+ <div class="card"><h2>Personel</h2><ul class="list">${S.staff.map(p=>`<li><span>${av(p,32)} ${e(p.ad)}${p.rol?` <span class="mute">(${p.rol})</span>`:''}</span><span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><label style="margin:0;cursor:pointer" class="btn2">Foto<input type="file" accept="image/*" data-foto="${p.id}" hidden></label>${p.pin?`<button class="btn2" data-a="pSifir" data-id="${p.id}">PIN sıfırla</button>`:''}<button class="btn2" data-a="pSil" data-id="${p.id}">Sil</button></span></li>`).join('')}</ul><label for="pn">Personel ekle</label><input id="pn" placeholder="Personel adı"><label for="pr">Görev</label><select id="pr"><option value="">Uzman</option><option>Resepsiyon</option></select><label for="pp">Prim yüzdesi</label><input id="pp" type="number" inputmode="numeric" placeholder="örn. 40"><button class="go" data-a="pEkle">Personeli ekle</button></div>
+ <div class="card"><h2>Gün sonu raporu</h2><button class="go" data-a="rapor" style="margin-top:6px">Raporu hazırla</button>${RP?`<p style="margin:12px 0 0">${e(RP).replace(/\n/g,'<br>')}</p><a class="btn2" style="display:block;text-align:center;text-decoration:none;margin-top:10px" href="https://wa.me/?text=${encodeURIComponent(RP)}" target="_blank" rel="noopener">WhatsApp’ta gönder</a>`:''}</div>
+ <div class="card"><details><summary>İşlem ve fiyat listesi <span class="mute" style="font-weight:500">${S.services.length} işlem, ${cl.length} kategori</span></summary>${cl.map(c=>`<h2 style="margin-top:14px">${e(c)}</h2><ul class="list">${S.services.filter(s=>s.k===c).map(s=>`<li><span>${e(s.ad)}<br><span class="mute">${s.sure} dk</span></span><span><input style="width:90px;padding:6px 8px" type="number" value="${s.fiyat}" data-fp="${s.id}"> <button class="btn2" data-a="sSil" data-id="${s.id}">×</button></span></li>`).join('')}</ul>`).join('')}
+ <h2 style="margin-top:16px">İşlem ekle</h2><input id="sk" list="cl" placeholder="Kategori (varsa seç, yoksa yeni yaz)"><datalist id="cl">${cl.map(c=>`<option value="${e(c)}">`).join('')}</datalist><label for="sn">İşlem adı</label><input id="sn"><div class="row"><div><label for="ss">Süre (dk)</label><input id="ss" type="number" inputmode="numeric"></div><div><label for="sf">Fiyat (₺)</label><input id="sf" type="number" inputmode="numeric"></div></div><button class="go" data-a="sEkle">İşlem ekle</button></details></div>
+ <div class="card"><details><summary>Ayarlar <span class="mute" style="font-weight:500">salon adı, sahip, fotoğraf, PIN</span></summary><label for="sc">Gün değişim saati (gece çalışırsan geç yap)</label><select id="sc"><option value="0" ${CUT()===0?'selected':''}>00:00 (gece yarısı)</option><option value="3" ${CUT()===3?'selected':''}>03:00</option><option value="4" ${CUT()===4?'selected':''}>04:00</option><option value="5" ${CUT()===5?'selected':''}>05:00</option><option value="6" ${CUT()===6?'selected':''}>06:00</option><option value="7" ${CUT()===7?'selected':''}>07:00</option><option value="8" ${CUT()===8?'selected':''}>08:00</option><option value="10" ${CUT()===10?'selected':''}>10:00</option></select><p class="mute" style="font-size:13px;margin:6px 0 0">Bu saatten önce girilen kayıtlar bir önceki iş gününe yazılır.</p><label for="sa">Salon adı</label><input id="sa" value="${e(S.salon)}"><label for="so">Salon sahibi adı</label><input id="so" value="${e(S.owner||'')}"><label for="sad">Adres (müşteri sayfasında görünür)</label><input id="sad" autocomplete="off" placeholder="Mahalle, sokak, ilçe" value="${e(S.adres||'')}"><label for="stel">Telefon</label><input id="stel" type="tel" inputmode="tel" autocomplete="off" value="${e(S.tel||'')}"><label for="ssaat">Çalışma saatleri</label><input id="ssaat" autocomplete="off" placeholder="Örn. Pzt-Cmt 09:00-20:00" value="${e(S.saat||'')}"><button class="btn2" data-a="ad" style="margin-top:10px">Kaydet</button><label style="cursor:pointer;margin-top:16px"><span class="btn2" style="display:inline-block">Salon fotoğrafı seç</span><input type="file" accept="image/*" data-foto="logo" hidden></label><label for="np">Yeni yönetici PIN’i</label><input id="np" type="password" inputmode="numeric" maxlength="8"><button class="btn2" data-a="pin" style="margin-top:10px">PIN’i değiştir</button></details></div>
+ ${bkCard()}<button class="btn2" data-a="cikY" style="width:100%">Çıkış yap</button>`}
+const $app=document.getElementById('app'),$tabs=document.getElementById('tabs'),$hd=document.getElementById('hd');
+const val=id=>(document.getElementById(id)||{value:''}).value.trim();
+const ODA0=['Oda 1','Oda 2','Lazer cihazı','Cilt bakım odası','Makyaj köşesi'];const odalar=()=>Array.isArray(S.odalar)?S.odalar:ODA0;
+const odaSel=()=>`<label for="wr">Oda / cihaz (isteğe bağlı)</label><select id="wr"><option value="">Seçme</option>${odalar().map(o=>`<option${AW.oda===o?' selected':''}>${e(o)}</option>`).join('')}</select>`;
+const H0=540,H1=1200,CUSTW='Müşteri',fd2=d=>d.split('-').reverse().join('.'),sum2=l=>l.reduce((t,x)=>t+x.fiyat,0);
+const isR=()=>U!==null&&!B&&(stf(U)||{}).rol==='Resepsiyon';
+const STOK0=[['Kalıcı oje',12,4],['Jel / protez tırnak malzemesi',8,3],['Ağda (kutu)',6,3],['Kirpik seti',10,4],['Cilt bakım serumu',5,2],['Tek kullanımlık havlu',60,20]];
+if((S.ver||2)<3){CAT.forEach(c=>c[1].forEach(x=>{const f=S.services.find(s=>s.ad===x[0]);if(!f)S.services.push({id:uid(),k:c[0],ad:x[0],sure:x[1],fiyat:x[2],gun:x[3],ps:x[4]});else if(x[4])f.ps=x[4]}));S.ver=3}
+S.stok=S.stok||STOK0.map(x=>({id:uid(),ad:x[0],adet:x[1],min:x[2]}));S.pkgs=S.pkgs||[];
+
+function freeSt(W,t,dur){const c=W.pid?[W.pid]:S.staff.filter(p=>p.rol!=='Resepsiyon').map(p=>p.id);
+ const ov=b=>b.tarih===W.tarih&&b.durum!=='İptal'&&b.durum!=='Gelmedi'&&!b.walk&&t<toM(b.saat)+(b.sure||30)&&toM(b.saat)<t+dur;
+ return c.filter(pid=>!S.appts.some(b=>b.pid===pid&&ov(b))&&(!W.oda||!S.appts.some(b=>b.oda===W.oda&&ov(b))))}
+function slots(W,k){
+ if(!W.hz.length||(!W.pid&&k!=='M'))return '<p class="mute" style="margin:0">Saat seçmek için '+(k==='M'?'hizmet':'personel ve hizmet')+' seç.</p>';
+ const dur=Math.max(30,W.hz.map(svc).filter(Boolean).reduce((t,s)=>t+s.sure,0)),n=new Date(),now=W.tarih===today()?n.getHours()*60+n.getMinutes():-1,out=[];
+ for(let t=H0;t<H1;t+=30){const ok=t+dur<=H1&&t>now&&freeSt(W,t,dur).length>0;out.push(`<button aria-pressed="${W.saat===fmt(t)}" data-a="saat" data-w="${k}" data-s="${fmt(t)}" ${ok?'':'disabled'}>${fmt(t)}</button>`)}
+ return `<div class="slots">${out.join('')}</div>`}
+function pkgSale(sel,kn,pid){sel.filter(s=>s.ps).forEach(s=>S.pkgs.push({id:uid(),cid:getCus(kn),ad:s.ad,toplam:s.ps,kalan:s.ps,pid,tarih:today()}))}
+const scopeC=()=>(B||isR())?S.customers:S.customers.filter(c=>S.appts.some(a=>a.cid===c.id&&a.pid===U));
+function bdSoon(c){if(!c.dogum)return false;const b=today(),d=new Date(c.dogum+'T12:00');d.setFullYear(+b.slice(0,4));let k=Math.round((d-new Date(b+'T12:00'))/864e5);if(k<0){d.setFullYear(+b.slice(0,4)+1);k=Math.round((d-new Date(b+'T12:00'))/864e5)}return k<=7}
+function cList(){const q=CQ.toLowerCase(),l=scopeC().filter(c=>!q||c.ad.toLowerCase().includes(q)||(c.tel||'').includes(q)).sort((a,b)=>a.ad.localeCompare(b.ad,'tr')).slice(0,30);
+ return l.length?`<ul class="list">${l.map(c=>`<li><span><button class="btn2" data-a="cc" data-id="${c.id}">${e(c.ad)}</button>${bdSoon(c)?' <span class="chip" style="margin:0">Doğum günü yakın</span>':''}</span><span class="mute">${S.appts.filter(a=>a.cid===c.id&&done(a)).length} ziyaret</span></li>`).join('')}</ul>`:'<p class="mute">Henüz kayıt yok.</p>'}
+function cExtra(c){return `<label>Cilt / alerji notu</label><input data-cf="alerji" data-cid="${c.id}" value="${e(c.alerji||'')}"><p class="mute" style="margin:4px 0 0">Sağlık bilgisi özel nitelikli kişisel veridir. Müşterinin açık rızası olmadan kaydetme.</p>`}
+function cardC(c,money){
+ const dn=S.appts.filter(a=>a.cid===c.id&&done(a)).sort((a,b)=>b.tarih.localeCompare(a.tarih)),pk=S.pkgs.filter(p=>p.cid===c.id&&p.kalan>0);
+ return `<div class="card"><div class="row"><b>${e(c.ad)}</b><button class="btn2" data-a="cc" data-id="" style="flex:none">Kapat</button></div>
+ <p class="mute" style="margin:6px 0">${c.tel?`<a href="${wa(c.tel,'Merhaba '+c.ad)}" target="_blank" rel="noopener">${e(c.tel)}</a> • `:''}${dn.length} ziyaret${dn[0]?' • son: '+fd2(dn[0].tarih):''}${money?' • toplam '+TL(sum2(dn)):''}</p>
+ ${bdSoon(c)?`<a class="btn2" style="text-decoration:none;display:inline-block;margin-bottom:6px" href="${wa(c.tel,'Doğum gününüz kutlu olsun '+c.ad+'! '+S.salon)}" target="_blank" rel="noopener">Doğum günü mesajı</a>`:''}
+ <label>Doğum günü</label><input type="date" value="${e(c.dogum||'')}" data-cf="dogum" data-cid="${c.id}"><label>Not</label><input value="${e(c.not||'')}" data-cf="not" data-cid="${c.id}" placeholder="Tercihler, hatırlatmalar">${cExtra(c)}
+ ${pk.length?'<label>Kalan seanslar</label>'+pk.map(p=>`<div class="row" style="margin:4px 0;align-items:center"><span>${e(p.ad)}: <b>${p.kalan}/${p.toplam}</b></span><button class="btn2" data-a="seans" data-id="${p.id}" style="flex:none">Seans düş</button></div>`).join(''):''}
+ <label>Geçmiş</label><ul class="list">${dn.slice(0,6).map(a=>`<li><span>${fd2(a.tarih)} · ${e(names(a))}</span>${money?`<span>${TL(a.fiyat)}</span>`:''}</li>`).join('')||'<li class="empty">Henüz ziyaret yok.</li>'}</ul></div>`}
+function custCard(){const c=CO&&scopeC().find(x=>x.id===CO);
+ return `<div class="card"><h2>${CUSTW}${(B||isR())?'ler':'lerim'}</h2><label for="cq">Ara</label><input id="cq" value="${e(CQ)}" placeholder="Ad veya telefon" autocomplete="off"><div id="clist" style="margin-top:8px">${cList()}</div></div>${c?cardC(c,B):''}`}
+function respView(){return `<div class="strip">Resepsiyon görünümü • Ciro, gider ve kazançlar gizli</div><div class="card"><h2>Resepsiyon</h2><p class="mute" style="margin:0">Randevuları yönetebilir, müşteri kartlarına bakabilirsin. Ciro ve kazançları göremezsin.</p></div>${custCard()}<button class="btn2" data-a="cik" style="width:100%;margin-bottom:14px">Çıkış yap</button>`}
+function pendCard(mine){const l=mine.filter(a=>a.durum==='Onay bekliyor').sort((a,b)=>(a.tarih+a.saat).localeCompare(b.tarih+b.saat));if(!l.length)return '';
+ return `<div class="card"><h2>Onay bekleyen talepler (${l.length})</h2><ul class="list">${l.map(a=>{const c=cus(a.cid)||{};return `<li class="ap"><span><b>${fd2(a.tarih)} ${a.saat}</b> · ${e(c.ad||'')}<br><span class="mute">${e(names(a))}${(B||isR())?' · '+e((stf(a.pid)||{}).ad):''}</span></span><span style="display:flex;gap:6px;width:100%;margin-top:6px"><button class="btn2" data-a="onay" data-id="${a.id}">Onayla</button><button class="btn2" data-a="red" data-id="${a.id}">Reddet</button></span></li>`}).join('')}</ul></div>`}
+function remCard(mine){const y=addDay(today(),1),l=mine.filter(a=>a.tarih===y&&a.durum==='Bekliyor').sort((a,b)=>a.saat.localeCompare(b.saat));
+ return `<div class="card"><h2>Yarın için hatırlatma (${l.length})</h2><p class="mute" style="margin:0 0 6px">Gerçek sistemde bu mesajlar otomatik gider. Şimdilik tek dokunuşla gönder.</p><ul class="list">${l.map(a=>{const c=cus(a.cid)||{ad:'',tel:''};return `<li><span>${a.saat} · ${e(c.ad||'İsimsiz')}<br><span class="mute">${e(names(a))}</span></span>${c.tel?`<a class="btn2" style="text-decoration:none" href="${wa(c.tel,'Merhaba '+c.ad+', yarın saat '+a.saat+' randevunuz var ('+names(a)+'). '+S.salon)}" target="_blank" rel="noopener">Hatırlat</a>`:'<span class="mute">telefon yok</span>'}</li>`}).join('')||'<li class="empty">Yarın için bekleyen randevu yok.</li>'}</ul></div>`}
+function odaCard(){const l=odalar();return `<div class="card"><h2>Oda ve cihazlar</h2><p class="mute" style="margin:0 0 6px">Randevu eklerken seçilir. Aynı oda ya da cihaz aynı saatte iki randevuya verilemez.</p><ul class="list">${l.map((o,i)=>`<li><span>${e(o)}</span><button class="btn2" data-a="odaSil" data-i="${i}">×</button></li>`).join('')||'<li class="empty">Oda ya da cihaz yok.</li>'}</ul><label for="oa">Yeni oda ya da cihaz</label><input id="oa" placeholder="Örn. Lazer cihazı 2" autocomplete="off"><button class="go" data-a="odaEkle" style="margin-top:10px">Ekle</button></div>`}
+function stokCard(){const low=S.stok.filter(s=>s.adet<=s.min);
+ return `<div class="card"><h2>Stok${low.length?' ('+low.length+' ürün azalıyor)':''}</h2><ul class="list">${S.stok.map(s=>`<li><span>${e(s.ad)}${s.adet<=s.min?' <span class="chip" style="margin:0">Azalıyor</span>':''}<br><span class="mute">En az ${s.min}</span></span><span style="display:flex;gap:6px;align-items:center"><button class="btn2" data-a="stokm" data-id="${s.id}">−</button><b>${s.adet}</b><button class="btn2" data-a="stokp" data-id="${s.id}">+</button><button class="btn2" data-a="stokSil" data-id="${s.id}">×</button></span></li>`).join('')||'<li class="empty">Ürün yok.</li>'}</ul><label for="sa2">Yeni ürün</label><input id="sa2"><div class="row"><div><label for="sd">Adet</label><input id="sd" type="number" inputmode="numeric"></div><div><label for="sm">En az</label><input id="sm" type="number" inputmode="numeric"></div></div><button class="go" data-a="stokEkle">Ürün ekle</button></div>`}
+function info(){const a=S.adres||'',t=S.tel||'',h=S.saat||'';if(!a&&!t&&!h)return MUS?'':`<p class="mute" style="margin:10px 0 0;font-size:13px">Adres, telefon ve çalışma saatleri burada görünür. Yönetici sekmesindeki Ayarlar bölümünden ekleyebilirsin (örnek).</p>`;return `<div style="margin-top:10px;font-size:14px;line-height:1.6">${a?`<div><b>Adres:</b> ${e(a)}</div>`:''}${h?`<div><b>Çalışma saatleri:</b> ${e(h)}</div>`:''}${t?`<div><b>Telefon:</b> ${e(t)}</div>`:''}</div><div style="display:flex;gap:8px;margin-top:10px">${t?`<a class="btn2" href="tel:${e(t.replace(/[^+0-9]/g,''))}" style="text-decoration:none;flex:1;text-align:center">Ara</a>`:''}${a?`<a class="btn2" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a)}" style="text-decoration:none;flex:1;text-align:center">Haritada aç</a>`:''}</div>`}
+function myCard(){const t=today(),l=S.appts.filter(a=>MY.includes(a.id)&&a.tarih>=t&&(a.durum==='Onay bekliyor'||a.durum==='Bekliyor')).sort((a,b)=>(a.tarih+a.saat).localeCompare(b.tarih+b.saat));if(!l.length)return '';return `<div class="card"><h2>Randevularım</h2><ul class="list">${l.map(a=>`<li class="ap"><span><b>${fd2(a.tarih)} ${a.saat}</b><br><span class="mute">${e(names(a))} · ${a.durum==='Onay bekliyor'?'Onay bekliyor':'Onaylandı'}</span></span><button class="btn2" data-a="mIptal" data-id="${a.id}">İptal et</button></li>`).join('')}</ul></div>`}
+function vMus(){const ok=MOK;MOK='';
+ return `${MUS?'':'<div class="strip">Müşteri görünümü • Salonun linki: '+e(location.origin)+'/r/lila</div>'}<div class="card"><h2>${e(S.salon)}</h2><p class="mute" style="margin:0">Online randevu al, salon onaylayınca haber verir.</p>${info()}</div>${ok?`<div class="card ok">${ok}</div>`:''}
+ ${myCard()}<div class="card"><h2>Randevu al</h2>${pick(MW,'M')}<label>Personel</label><div class="pick"><button class="pk" aria-pressed="${!MW.pid}" data-a="ap" data-w="M" data-id="any"><span class="sq">?</span><span class="n" style="white-space:normal;line-height:1.15">Fark etmez</span></button>${S.staff.filter(p=>p.rol!=='Resepsiyon').map(p=>`<button class="pk" aria-pressed="${MW.pid===p.id}" data-a="ap" data-w="M" data-id="${p.id}"><span class="sq">${p.foto?`<img src="${p.foto}" alt="">`:e((p.ad||'?')[0])}</span><span class="n">${e(p.ad)}</span></button>`).join('')}</div>
+ <label for="mt">Tarih</label><input id="mt" type="date" min="${today()}" value="${MW.tarih}"><label>Saat</label>${slots(MW,'M')}<label for="mn">Adın</label><input id="mn" value="${e(MW.ad)}" autocomplete="off"><label for="mp">Telefon</label><input id="mp" type="tel" inputmode="tel" value="${e(MW.tel)}" autocomplete="off"><label for="mo">Not (isteğe bağlı)</label><input id="mo" value="${e(MW.not)}">
+ <label style="display:flex;gap:8px;align-items:flex-start;font-weight:500"><input id="mk" type="checkbox" style="width:auto;margin-top:3px" ${MW.kv?'checked':''}><span>Kişisel verilerimin randevu amacıyla işlenmesine ilişkin aydınlatma metnini okudum (örnek metin).</span></label><button class="go" data-a="mKaydet">Randevu talebi gönder</button></div>`}
+function brStat(d){const t=today(),m=t.slice(0,7)+'-01',x=d.appts.filter(a=>a.durum==='Geldi'&&a.tarih>=m&&a.tarih<=t),c=sum(x),p=x.reduce((s,q)=>{const k=d.staff.find(z=>z.id===q.pid);return s+q.fiyat*(k?k.prim:0)/100},0),g=(d.gider||[]).filter(q=>q.tarih.slice(0,7)===t.slice(0,7)).reduce((s,q)=>s+q.tutar,0);return{n:x.length,c,p,g,net:c-p-g}}
+function vIsl(){
+ if(!OW)return `<section class="card"><h2>İşletme sahibi girişi</h2><p class="mute" style="margin:0 0 8px">Tüm şubelerin cirosu yalnızca işletme sahibine açıktır. Şube yöneticisi sadece kendi şubesinin Yönetici sekmesini görür. Demo PIN: 1234</p><label for="opin">Sahip PIN</label><input id="opin" type="password" inputmode="numeric" maxlength="8" autocomplete="off"><button class="go" data-a="girO">Gir</button></section>`;
+ const L=R.subeler.map(s=>({s,r:brStat(s.d)})),T=L.reduce((a,x)=>({c:a.c+x.r.c,net:a.net+x.r.net}),{c:0,net:0}),n=R.subeler.length,uc=R.ilk+Math.max(0,n-1)*R.ek;
+ return `<div class="strip">İşletme paneli • Tüm şubeler yalnızca sende</div>
+ <div class="stats"><div class="stat"><span>Toplam ciro (ay)</span><b>${TL(T.c)}</b></div><div class="stat"><span>Toplam net kâr</span><b>${TL(T.net)}</b></div><div class="stat"><span>Şube sayısı</span><b>${n}</b></div></div>
+ <div class="card"><h2>Şubeler (bu ay)</h2>${tbl(['Şube','Müşteri','Ciro','Gider','Net kâr',''],L.map((x,i)=>[e(x.s.ad),x.r.n,TL(x.r.c),TL(x.r.g),TL(x.r.net),`<button class="btn2" data-a="sbGit" data-i="${i}">${i===R.aktif?'Açık':'Aç'}</button>`]))}</div>
+ <div class="card"><h2>Yeni şube ekle</h2><label for="sbn">Şube adı</label><input id="sbn" placeholder="Örn. Kadıköy"><button class="go" data-a="sbEkle">Şube ekle</button><p class="mute" style="margin:8px 0 0">Yeni şube kendi personeli, randevusu ve ciro kayıtlarıyla ayrı başlar; hizmet listesi mevcut şubeden kopyalanır. Şube yönetici PIN'i: 1234 (şube yöneticisi kendi Yönetici sekmesinden değiştirir).</p></div>
+ <div class="card"><h2>Abonelik ücreti</h2><p style="margin:0 0 8px">${n} şube: <b>${TL(uc)}</b> / ay</p><label for="fi">İlk şube (₺/ay)</label><input id="fi" type="number" inputmode="numeric" value="${R.ilk}" data-fee="ilk"><label for="fe">Her ek şube (₺/ay)</label><input id="fe" type="number" inputmode="numeric" value="${R.ek}" data-fee="ek"><p class="mute" style="margin:8px 0 0">Örnek fiyatlardır, sonra değiştirilebilir.</p></div>
+ ${bkCard()}<button class="btn2" data-a="cikO" style="width:100%;margin-bottom:14px">Sahip çıkışı</button>`}
+function render(){
+ $hd.innerHTML=vHd();
+ if(MUS){$tabs.innerHTML='';$app.innerHTML=vMus();return}
+ $tabs.innerHTML=[['y','Yönetici'],['p','Personel'],['r','Randevu'],['i','İşletme'],['m','Müşteri']].map(x=>`<button aria-pressed="${tab===x[0]}" data-a="tab" data-t="${x[0]}">${x[1]}</button>`).join('');
+ $app.innerHTML=tab==='m'?vMus():owner()+(tab==='p'?vPers():tab==='r'?vRand():tab==='i'?vIsl():vYon());
+}
+function act(a,d){
+ if(MUS&&!['cat','hz','ap','saat','mKaydet','mIptal'].includes(a))return;
+ if(a==='tab')tab=d.t;
+ else if(a==='gir'){if(U===d.id)return;U=null;PS=d.id;KW=newW()}
+ else if(a==='pinGo'){const p=stf(PS),v=val('spin');if(!p)return;if(!p.pin){if(v.length<4){alert('PIN en az 4 haneli olmalı.');return}p.pin=v}else if(v!==p.pin){alert('PIN yanlış.');return}U=p.id;PS=null}
+ else if(a==='cik'){U=null;PS=null;KW=newW()}
+ else if(a==='girY'){if(val('pin')===S.pin)B=true;else{alert('PIN yanlış.');return}}
+ else if(a==='cikY'){B=false;RP=''}
+ else if(a==='girO'){if(val('opin')===R.opin){OW=true;B=true}else{alert('PIN yanlış.');return}}
+ else if(a==='cikO'){OW=false;B=false;RP=''}
+ else if(a==='sbGit'){R.aktif=+d.i;S=R.subeler[R.aktif].d;B=OW;U=null;PS=null}
+ else if(a==='sbEkle'){const ad=val('sbn');if(!ad)return;const nd={salon:R.isl+' '+ad,ver:2,services:JSON.parse(JSON.stringify(S.services)).map(x=>({...x,id:uid()})),staff:[],customers:[],appts:[],gider:[],pin:'1234'};R.subeler.push({id:uid(),ad,d:nd})}
+ else if(a==='cat')Wm(d.w).cat=+d.i;
+ else if(a==='hz'){const W=Wm(d.w),i=W.hz.indexOf(d.id);i<0?W.hz.push(d.id):W.hz.splice(i,1);W.saat=null;if(i<0&&W.hz.length===1)setTimeout(()=>{const el=[...document.querySelectorAll('.selTot')].find(x=>x.offsetParent);if(el)el.scrollIntoView({behavior:'smooth',block:'center'})},60)}
+ else if(a==='ap'){const W=Wm(d.w||'A');W.pid=d.id==='any'?null:d.id;W.saat=null}
+ else if(a==='saat')Wm(d.w||'A').saat=d.s;
+ else if(a==='gun')D=d.d;
+ else if(a==='kk'){if(!KW.hz.length){alert('Önce yapılan işlemi seç.');return}if(KW.hz.map(svc).some(s=>s&&s.ps)&&!KW.kn){alert('Paket satışı için müşteri adını yaz.');return}const sel=KW.hz.map(svc).filter(Boolean),fy=KW.tut!=null&&KW.tut!==''?+KW.tut:sel.reduce((s,x)=>s+x.fiyat,0),n=new Date();S.appts.push({id:uid(),tarih:today(),saat:fmt(n.getHours()*60+n.getMinutes()),sure:0,fiyat:fy,hz:KW.hz.slice(),hn:sel.map(x=>x.ad),pid:U,cid:getCus(KW.kn),durum:'Geldi',odeme:KW.o||'Nakit',walk:true});pkgSale(KW.hz.map(svc).filter(Boolean),KW.kn,U);KW=newW()}
+ else if(a==='aKaydet'){const sel=AW.hz.map(svc).filter(Boolean);if(!AW.ad){alert('Müşteri adını yaz.');return}if(!sel.length||!AW.pid||!AW.saat){alert('Personel, işlem ve saat seç.');return}S.appts.push({id:uid(),tarih:AW.tarih,saat:AW.saat,sure:sel.reduce((t,x)=>t+x.sure,0),fiyat:sel.reduce((t,x)=>t+x.fiyat,0),hz:AW.hz.slice(),hn:sel.map(x=>x.ad),pid:AW.pid,cid:getCus(AW.ad,AW.tel),durum:'Bekliyor',not:AW.not,oda:AW.oda||undefined});D=AW.tarih;MSG='Randevu kaydedildi.';AW=newW()}
+ else if(a==='mKaydet'){const sel=MW.hz.map(svc).filter(Boolean);if(!MW.ad||!MW.tel){alert('Adını ve telefonunu yaz.');return}if(!MW.kv){alert('Aydınlatma metnini onaylamalısın.');return}if(!sel.length||!MW.saat){alert('Hizmet ve saat seç.');return}const dur=Math.max(30,sel.reduce((t,x)=>t+x.sure,0)),pid=MW.pid||freeSt(MW,toM(MW.saat),dur)[0];if(!pid){alert('Bu saat dolu, başka saat seç.');return}const nid=uid();S.appts.push({id:nid,tarih:MW.tarih,saat:MW.saat,sure:dur,fiyat:sum2(sel),hz:MW.hz.slice(),hn:sel.map(x=>x.ad),pid,cid:getCus(MW.ad,MW.tel),durum:'Onay bekliyor',not:MW.not,online:true});MY.push(nid);saveMy();MOK='Talebin alındı: '+e(gunAd(MW.tarih)+' · '+MW.saat+' · '+sel.map(x=>x.ad).join(', ')+' · '+TL(sum2(sel)))+'. Salon onaylayınca WhatsApp’tan haber verecek (örnek). İstersen aşağıdaki “Randevularım” bölümünden iptal edebilirsin.';MW=newW()}
+ else if(a==='odaEkle'){const ad=val('oa');if(!ad)return;const l=odalar();if(l.some(x=>x.toLowerCase()===ad.toLowerCase()))return;S.odalar=l.concat(ad)}
+  else if(a==='odaSil'){const l=odalar().slice();l.splice(+d.i,1);S.odalar=l}
+  else if(a==='bkIndir'){bkSave();return}
+  else if(a==='mIptal'){const x=S.appts.find(q=>q.id===d.id&&MY.includes(q.id));if(!x)return;if(!confirm('Randevuyu iptal etmek istiyor musun?'))return;x.durum='İptal';x.iptalM=true;MOK='Randevun iptal edildi.'}
+  else if(a==='onay'){const x=S.appts.find(q=>q.id===d.id);if(x)x.durum='Bekliyor'}
+ else if(a==='red'){const x=S.appts.find(q=>q.id===d.id);if(x)x.durum='İptal'}
+ else if(a==='cc')CO=d.id||null;
+ else if(a==='seans'){const p=S.pkgs.find(x=>x.id===d.id);if(p&&p.kalan>0){p.kalan--;p.log=(p.log||[]).concat(today())}}
+ else if(a==='stokp'||a==='stokm'){const s=S.stok.find(x=>x.id===d.id);if(s)s.adet=Math.max(0,s.adet+(a==='stokp'?1:-1))}
+ else if(a==='stokSil')S.stok=S.stok.filter(x=>x.id!==d.id);
+ else if(a==='stokEkle'){const ad=val('sa2');if(!ad)return;S.stok.push({id:uid(),ad,adet:+val('sd')||0,min:+val('sm')||0})}
+ else if(a==='gel'){const x=S.appts.find(q=>q.id===d.id);x.durum='Geldi';x.odeme=d.o;const ps=(x.hz||[]).map(svc).filter(s=>s&&s.ps);if(ps.length&&!x.pk){ps.forEach(s=>S.pkgs.push({id:uid(),cid:x.cid,ad:s.ad,toplam:s.ps,kalan:s.ps-1,pid:x.pid,tarih:x.tarih,aid:x.id}));x.pk=true}}
+ else if(a==='dur'){const x=S.appts.find(q=>q.id===d.id);x.durum=d.d;delete x.odeme;delete x.iptalM;if(x.pk){S.pkgs=S.pkgs.filter(p=>p.aid!==x.id);x.pk=false}}
+ else if(a==='aSil')S.appts=S.appts.filter(x=>x.id!==d.id);
+ else if(a==='gEkle'){const ad=val('gn'),tu=+val('gt');if(!ad||!tu)return;S.gider.push({id:uid(),tarih:today(),ad,tutar:tu})}
+ else if(a==='gSil')S.gider=S.gider.filter(g=>g.id!==d.id);
+ else if(a==='pin'){const n=val('np');if(n.length<4){alert('PIN en az 4 haneli olmalı.');return}S.pin=n}
+ else if(a==='rapor'){const t=today(),l=S.appts.filter(x=>x.tarih===t&&done(x)),g=S.gider.filter(x=>x.tarih===t).reduce((s,x)=>s+x.tutar,0);RP=S.salon+' · '+gunAd(t)+'\nCiro: '+TL(sum(l))+'\nNakit: '+TL(sum(l.filter(x=>x.odeme==='Nakit')))+' · Kart: '+TL(sum(l.filter(x=>x.odeme==='Kart')))+'\n'+S.staff.map(p=>{const q=l.filter(x=>x.pid===p.id);return p.ad+': '+q.length+' müşteri, '+TL(sum(q))}).join('\n')+'\nGider: '+TL(g)+'\nNet: '+TL(sum(l)-S.staff.reduce((s,p)=>s+pay(p.id,t,t),0)-g)}
+ else if(a==='pEkle'){const ad=val('pn');if(!ad)return;S.staff.push({id:uid(),ad,prim:+val('pp')||0,rol:val('pr')||undefined})}
+ else if(a==='pSil')S.staff=S.staff.filter(p=>p.id!==d.id);
+ else if(a==='pSifir'){const p=stf(d.id);if(p)delete p.pin}
+ else if(a==='sEkle'){const ad=val('sn'),k=val('sk')||'Diğer';if(!ad)return;S.services.push({id:uid(),k,ad,sure:+val('ss')||30,fiyat:+val('sf')||0})}
+ else if(a==='sSil')S.services=S.services.filter(s=>s.id!==d.id);
+ else if(a==='ad'){S.salon=val('sa')||S.salon;S.owner=val('so')}
+ save();render();
+}
+document.addEventListener('click',ev=>{const b=ev.target.closest('[data-a]');if(b&&b.tagName!=='INPUT')act(b.dataset.a,b.dataset)});
+function foto(f,cb){const r=new FileReader();r.onload=()=>{const i=new Image();i.onload=()=>{const c=document.createElement('canvas'),k=Math.min(1,200/Math.max(i.width,i.height));c.width=i.width*k;c.height=i.height*k;c.getContext('2d').drawImage(i,0,0,c.width,c.height);cb(c.toDataURL('image/jpeg',.7))};i.src=r.result};r.readAsDataURL(f)}
+function bkCard(){return `<div class="card"><h2>Yedek ve geri yükleme</h2><p class="mute" style="margin:0 0 8px">${OW?'Tüm işletmenin (bütün şubelerin)':'Bu şubenin'} kayıtlarını dosya olarak indir. Veri kaybolursa ya da başka cihaza taşımak istersen aynı dosyayı geri yükle. Dosyada müşteri bilgileri ve PIN’ler var, güvenli sakla.</p><p style="margin:0 0 8px">${R.yedek?'Son yedek: '+fd2(R.yedek):'Henüz yedek alınmadı.'}</p><div class="row"><button class="btn2" data-a="bkIndir">Yedek indir</button><label class="btn2" style="margin:0;cursor:pointer;text-align:center">Yedekten yükle<input type="file" accept=".json,application/json" data-bk="1" style="display:none"></label></div></div>`}
+async function bkSave(){R.subeler[R.aktif].d=S;const full=OW,pack={tip:'lila-yedek',ver:1,kapsam:full?'isletme':'sube',tarih:new Date().toISOString(),salon:S.salon,veri:full?R:S};let dl=null;try{dl=window.claude&&claude.use?await claude.use('downloads'):null}catch(x){}
+ if(!dl){const u=URL.createObjectURL(new Blob([JSON.stringify(pack)],{type:'application/json'})),l=document.createElement('a');l.href=u;l.download='lila-yedek-'+today()+'.json';document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),1000);R.yedek=today();save();render();return}
+ try{await dl.save({filename:'lila-yedek-'+today()+'.json',data:JSON.stringify(pack)});R.yedek=today();save();render()}catch(x){if(x&&x.code==='declined')return;alert('Yedek indirilemedi.')}}
+function bkOk(d){return d&&Array.isArray(d.services)&&Array.isArray(d.staff)&&Array.isArray(d.appts)&&Array.isArray(d.customers)}
+function bkClean(d){const img=u=>typeof u==='string'&&/^data:image\//.test(u);d.gider=d.gider||[];d.pkgs=d.pkgs||[];d.stok=d.stok||STOK0.map(x=>({id:uid(),ad:x[0],adet:x[1],min:x[2]}));d.pin=d.pin||'1234';d.ver=d.ver||3;if(d.logo&&!img(d.logo))delete d.logo;d.staff.forEach(p=>{if(p.foto&&!img(p.foto))delete p.foto});return d}
+function bkRestore(f){const r=new FileReader();r.onload=()=>{let p=null;try{p=JSON.parse(r.result)}catch(x){}
+ if(!p||p.tip!=='lila-yedek'||!p.veri){alert('Bu dosya bir yedek dosyası değil.');return}
+ if(p.kapsam==='isletme'){if(!OW){alert('Tüm işletme yedeğini sadece İşletme sekmesinden, sahip girişiyle yükleyebilirsin.');return}
+  const v=p.veri;if(!Array.isArray(v.subeler)||!v.subeler.length||!v.subeler.every(s=>bkOk(s.d))){alert('Yedek dosyası bozuk görünüyor, yüklenmedi.');return}
+  if(!confirm('Şu anki tüm kayıtlar silinip yerine yedekteki kayıtlar gelecek ('+v.subeler.length+' şube). Devam edelim mi?'))return;
+  v.subeler.forEach(s=>bkClean(s.d));v.opin=v.opin||'1234';v.ilk=v.ilk==null?500:v.ilk;v.ek=v.ek==null?250:v.ek;v.aktif=Math.min(v.aktif||0,v.subeler.length-1);R=v;S=R.subeler[R.aktif].d}
+ else if(p.kapsam==='sube'){if(!bkOk(p.veri)){alert('Yedek dosyası bozuk görünüyor, yüklenmedi.');return}
+  if(!confirm('Bu şubenin şu anki kayıtları silinip yerine yedekteki kayıtlar ('+(p.veri.salon||'şube')+') gelecek. Devam edelim mi?'))return;
+  S=bkClean(p.veri);R.subeler[R.aktif].d=S}
+ else{alert('Bu dosya bir yedek dosyası değil.');return}
+ U=null;PS=null;CO=null;CQ='';KW=newW();AW=newW();MW=newW();D=today();RP='';save();render();alert('Yedek yüklendi.')};r.readAsText(f)}
+document.addEventListener('change',ev=>{const t=ev.target;if(t.dataset&&t.dataset.bk){const f=t.files&&t.files[0];t.value='';if(f)bkRestore(f);return}
+ if(t.id==='sb'){R.aktif=+t.value;S=R.subeler[R.aktif].d;B=OW;U=null;PS=null;save();render();return}
+ if(t.dataset.fee){R[t.dataset.fee]=+t.value||0;save();render();return}
+ if(t.id==='wt'){AW.tarih=(t.value&&t.value>=today())?t.value:today();AW.saat=null;render();return}
+ if(t.id==='mt'){MW.tarih=(t.value&&t.value>=today())?t.value:today();MW.saat=null;render();return}
+ if(t.id==='wr'){AW.oda=t.value;AW.saat=null;render();return}
+ if(t.dataset.cf){const c=cus(t.dataset.cid);if(c){c[t.dataset.cf]=t.type==='number'?(+t.value||0):t.value;save()}return}
+ if(t.dataset.fp){const s=svc(t.dataset.fp);if(s){s.fiyat=+t.value||0;save()}return}
+ if(t.id==='sad'||t.id==='stel'||t.id==='ssaat'){S[{sad:'adres',stel:'tel',ssaat:'saat'}[t.id]]=t.value.trim();save();render();return}if(t.id==='sc'){S.cut=+t.value;save();render();return}if(t.dataset.pr){const p=stf(t.dataset.pr);if(p){p.prim=+t.value||0;save()}return}
+ const f=t.files&&t.files[0],k=t.dataset&&t.dataset.foto;if(f&&k)foto(f,u=>{if(k==='logo')S.logo=u;else if(stf(k))stf(k).foto=u;save();render()})});
+document.addEventListener('input',ev=>{const t=ev.target,m={kn:()=>KW.kn=t.value,kt:()=>KW.tut=t.value,wn:()=>AW.ad=t.value,wp:()=>AW.tel=t.value,wo:()=>AW.not=t.value,ko:()=>KW.o=t.value,mn:()=>MW.ad=t.value,mp:()=>MW.tel=t.value,mo:()=>MW.not=t.value,mk:()=>MW.kv=t.checked,gi:()=>GI=t.value,cq:()=>{CQ=t.value;const l=document.getElementById('clist');if(l)l.innerHTML=cList()}};if(m[t.id])m[t.id]()});
+render(); let _gd=today();setInterval(()=>{const n=today();if(n!==_gd){if(D===_gd)D=n;_gd=n;try{render()}catch(e){}}},60000);
+</script>
+</body>
+</html>
