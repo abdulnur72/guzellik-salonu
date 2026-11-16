@@ -99,3 +99,34 @@ describe('online randevu', () => {
     expect(getDb().branches[0].appointments.find((a) => first.ok && a.id === first.id)!.payment).toBe('card')
   })
 })
+
+describe('seanslı paket ve stok', () => {
+  it('"Geldi" olunca paket açılır ve ilk seans düşülür; "Geri al" paketi siler', async () => {
+    const { addAppointment, consumeSession } = await import('../data/actions')
+    const b = getDb().branches[0]
+    const pkg = b.services.find((s) => s.sessions === 6)!
+    addAppointment(b.branch.id, { staffId: b.staff[1].id, serviceIds: [pkg.id], date: '2030-02-01', time: '12:00', customerName: 'Gül', phone: '' })
+    const a = getDb().branches[0].appointments.find((x) => x.date === '2030-02-01')!
+    setStatus(b.branch.id, a.id, 'done', 'card')
+    let p = getDb().branches[0].packages.find((x) => x.sourceAppointmentId === a.id)!
+    expect([p.total, p.remaining]).toEqual([6, 5])
+    consumeSession(b.branch.id, p.id)
+    p = getDb().branches[0].packages.find((x) => x.id === p.id)!
+    expect(p.remaining).toBe(4)
+    setStatus(b.branch.id, a.id, 'done', 'card') // ikinci kez işaretleme yeni paket açmaz
+    expect(getDb().branches[0].packages.filter((x) => x.sourceAppointmentId === a.id)).toHaveLength(1)
+    setStatus(b.branch.id, a.id, 'booked')
+    expect(getDb().branches[0].packages.some((x) => x.sourceAppointmentId === a.id)).toBe(false)
+  })
+  it('stok sıfırın altına inmez', async () => {
+    const { adjustStock } = await import('../data/actions')
+    const b = getDb().branches[0]
+    const s = b.stock[0]
+    adjustStock(b.branch.id, s.id, -1000)
+    expect(getDb().branches[0].stock[0].qty).toBe(0)
+  })
+  it('abonelik ücreti: ilk şube + ek şubeler', async () => {
+    const { monthlyFee } = await import('../data/actions')
+    expect(monthlyFee({ feeFirst: 500, feeExtra: 250 }, 3)).toBe(1000)
+  })
+})

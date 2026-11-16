@@ -12,5 +12,7 @@ export interface SectorPackage {
     openMin: number
     closeMin: number
     rooms: string[]
+    /** [ürün, adet, en az] */
+    stock: [string, number, number][]
   }
 }

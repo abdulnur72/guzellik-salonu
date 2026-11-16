@@ -7,7 +7,8 @@ Güzellik salonları için randevu, personel, ciro ve müşteri takip uygulamas�
 
 | Link | Kimin için | Ne yapar |
 |---|---|---|
-| `/` | Sahip (demo) | Şubeleri ve linklerini listeler, yeni şube ekler |
+| `/` | Demo girişi | Şubeleri ve linklerini listeler |
+| `/sahip` | İşletme sahibi | Tüm şubelerin bu ayki cirosu, gideri, net kârı; şube ekleme; abonelik ücreti; istediği şubeye yönetici olarak geçiş |
 | `/s/<şube>` | Personel, resepsiyon, yönetici | Aynı linkten girilir, kim olduğu PIN ile belirlenir |
 | `/r/<şube>` | Müşteri | Yalnızca randevu sayfası; personel/yönetici ekranları hiç görünmez |
 
@@ -15,12 +16,18 @@ Güzellik salonları için randevu, personel, ciro ve müşteri takip uygulamas�
 **Resepsiyon:** randevuları ve müşteri kartlarını yönetir, ciro ve kazançları görmez.
 **Randevu:** yeni randevu (personel, oda/cihaz, çakışma kontrolü), onay bekleyen online talepler, Geldi · Nakit / Geldi · Kart / Gelmedi / İptal / Geri al, yarınki randevular için WhatsApp hatırlatma.
 **Yönetici:** ciro tabloları, personel ve patron payı, nakit/kart dağılımı, gider ve net kâr, personel bazında tablo ve prim oranı, personel ekleme/çıkarma, PIN sıfırlama, müşteri kartları (doğum günü, not, alerji notu), 136 işlemlik fiyat listesi, gün sonu raporu (WhatsApp), ayarlar (salon adı, adres, telefon, çalışma saatleri, gün değişim saati, PIN), müşteri ve panel linkleri.
+**Seanslı paket:** paket içeren işlem "Geldi" işaretlenince (ya da personel randevusuz kaydedince) paket açılır ve ilk seans düşülür (ör. 5/6); müşteri kartından "Seans düş" ile devam edilir, "Geri al" paketi siler.
+**Diğer:** oda/cihaz listesi (aynı oda aynı saatte iki randevuya verilmez), stok ve "Azalıyor" uyarısı, personel ve salon fotoğrafı, geçen ayın kapanışı (prim hesabı için).
 **Müşteri:** hizmet seçimi (çoklu, toplam tutar ve süre), personel ya da "Fark etmez", boş saatler, telefon ve aydınlatma onayı, onay mesajı, "Randevularım" ile iptal.
 
 Telefonda tek sütun, bilgisayarda (960 px üstü) iki sütun. Telefona ve bilgisayara "Ana ekrana ekle / Uygulama olarak yükle" ile kurulur (PWA).
 
 ### Demo modu
 Supabase bilgileri girilmeden önce uygulama **demo modunda** çalışır: kayıtlar o cihazın tarayıcısında durur. Demo yönetici PIN'i `1234`.
+
+## Hesap kurulumu
+
+Cloudflare ve Supabase hesaplarının açılması adım adım [KURULUM.md](KURULUM.md) dosyasında. Supabase'e yüklenecek tek dosya: `supabase/kurulum.sql`.
 
 ## Kurulum (geliştirici)
 
@@ -64,7 +71,7 @@ Para birimi, saat dilimi, dil ve ülke her işletmenin ayarıdır (varsayılan T
 ## Yol haritası
 
 1. ✅ İskelet, ortak çekirdek, güzellik paketi, demo modunda tam çalışan ekranlar, veritabanı şeması
-2. Supabase ve Cloudflare hesaplarını açmak (birlikte, ekran ekran)
+2. Cloudflare ve Supabase hesaplarını açmak (KURULUM.md)
 3. Veri katmanını Supabase'e bağlamak: giriş (sahip e-posta ile, personel davet linki ile), ortak kayıtlar
-4. Prototipte olup henüz aktarılmayanlar: İşletme (çok şube) paneli ve abonelik ücreti, seanslı paket takibi, stok, oda/cihaz listesini düzenleme, personel ve salon fotoğrafı, yedek indirme, onay bekleyen talepler için bildirim
+4. ✅ Prototipten kalanlar: İşletme (sahip) paneli ve abonelik ücreti, seanslı paketler, stok, oda/cihaz listesi, fotoğraflar, geçen ay görünümü (yedek indirme veritabanına geçince gereksiz)
 5. Pilot salon (2-3 hafta), sonra bayan kuaför, berber, spor salonu paketleri

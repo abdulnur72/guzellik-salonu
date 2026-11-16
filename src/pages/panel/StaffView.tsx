@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { deleteAppointment, recordWalkIn, updateStaff } from '../../core/data/actions'
+import { deleteAppointment, hasPackage, recordWalkIn, updateStaff } from '../../core/data/actions'
 import { periodTotals } from '../../core/reports'
 import { addDays, monthStart, toClock } from '../../core/time'
 import type { Id, PaymentMethod } from '../../core/types'
@@ -92,6 +92,7 @@ function WalkInCard({ ctx, staffId }: { ctx: PanelCtx; staffId: Id }) {
   const suggested = ids.reduce((a, id) => a + (list.find((s) => s.id === id)?.price ?? 0), 0)
   const save = () => {
     if (!ids.length) return alert(t('staff.pickServiceFirst'))
+    if (hasPackage(list, ids) && !name.trim()) return alert(t('staff.packageNeedsName'))
     recordWalkIn(ctx.branch.id, {
       staffId,
       serviceIds: ids,

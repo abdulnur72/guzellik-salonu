@@ -11,6 +11,7 @@ import { Strip } from '../../ui/layout'
 import { Avatar, StatTiles, Table } from '../../ui/pickers'
 import { CustomersCard } from './CustomersCard'
 import { isManager, type PanelCtx } from './ctx'
+import { PhotoButton, PrevMonthCard, RoomsCard, StockCard } from './ManagerExtras'
 
 export function ManagerView({ ctx }: { ctx: PanelCtx }) {
   if (!isManager(ctx)) return <ManagerLogin ctx={ctx} />
@@ -45,12 +46,15 @@ export function ManagerView({ ctx }: { ctx: PanelCtx }) {
           </div>
           <ProfitCard ctx={ctx} revenue={month.revenue} share={month.staffShare} />
           <ByStaffCard ctx={ctx} />
+          <PrevMonthCard ctx={ctx} />
           <DayReportCard ctx={ctx} />
+          <StockCard ctx={ctx} />
         </div>
         <div>
           <LinksCard ctx={ctx} />
           <StaffCard ctx={ctx} />
           <CustomersCard ctx={ctx} />
+          <RoomsCard ctx={ctx} />
           <ServicesCard ctx={ctx} />
           <SettingsCard ctx={ctx} />
           <button className="btn2 block" onClick={() => ctx.setSession(null)}>{t('common.logout')}</button>
@@ -220,6 +224,7 @@ function StaffCard({ ctx }: { ctx: PanelCtx }) {
               {p.role === 'reception' && <span className="mute"> ({t('mgr.roleReception')})</span>}
             </span>
             <span className="actions end">
+              <PhotoButton ctx={ctx} staffId={p.id} label={t('common.photo')} />
               {p.pin && <button className="btn2" onClick={() => updateStaff(b, p.id, { pin: undefined })}>{t('mgr.resetPin')}</button>}
               <button className="btn2" onClick={() => confirm(t('mgr.removeStaffConfirm', { ad: p.name })) && removeStaff(b, p.id)}>{t('common.delete')}</button>
             </span>
@@ -324,6 +329,10 @@ function SettingsCard({ ctx }: { ctx: PanelCtx }) {
           updateBranch(br.id, { address: f.address.trim(), phone: f.phone.trim(), hours: f.hours.trim() })
           setMsg(t('mgr.saved'))
         }}>{t('common.save')}</button>
+        <div className="actions" style={{ marginTop: 16 }}>
+          <PhotoButton ctx={ctx} label={t('mgr.salonPhoto')} />
+          {br.logo && <button className="btn2" onClick={() => updateBranch(br.id, { logo: undefined })}>{t('mgr.removePhoto')}</button>}
+        </div>
         <label htmlFor="np">{t('mgr.newPin')}</label>
         <input id="np" type="password" inputMode="numeric" maxLength={8} value={pin} onChange={(e) => setPin(e.target.value)} />
         <button className="btn2" style={{ marginTop: 10 }} onClick={() => {

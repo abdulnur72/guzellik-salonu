@@ -42,6 +42,8 @@ export interface Branch {
   closeMin: number
   managerPin: string
   logo?: string
+  /** Oda ve cihazlar: aynı oda aynı saatte iki randevuya verilemez */
+  rooms: string[]
 }
 
 export type StaffRole = 'expert' | 'reception'
@@ -122,6 +124,29 @@ export interface Expense {
   amount: number
 }
 
+/** Müşterinin satın aldığı seanslı paket (ör. lazer 6 seans) */
+export interface SessionPackage {
+  id: Id
+  branchId: Id
+  customerId: Id
+  serviceName: string
+  total: number
+  remaining: number
+  staffId: Id
+  date: IsoDate
+  /** Paketi açan randevu: "Geri al" denince paket de silinir */
+  sourceAppointmentId?: Id
+}
+
+export interface StockItem {
+  id: Id
+  branchId: Id
+  name: string
+  qty: number
+  /** Bu adede inince "Azalıyor" uyarısı çıkar */
+  min: number
+}
+
 /** Bir şubenin tüm kayıtları. Demo modunda tek bir JSON olarak saklanır. */
 export interface BranchData {
   branch: Branch
@@ -130,6 +155,8 @@ export interface BranchData {
   customers: Customer[]
   appointments: Appointment[]
   expenses: Expense[]
+  packages: SessionPackage[]
+  stock: StockItem[]
 }
 
 export interface DemoDatabase {

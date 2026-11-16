@@ -3,7 +3,6 @@ import { addAppointment, setStatus } from '../../core/data/actions'
 import { daySlots } from '../../core/scheduling'
 import { addDays, longDate, shortDate } from '../../core/time'
 import type { Appointment, Id } from '../../core/types'
-import { sector } from '../../sectors'
 import { t } from '../../i18n'
 import { Strip } from '../../ui/layout'
 import { ServicePicker, SlotPicker, StaffPicker } from '../../ui/pickers'
@@ -171,7 +170,7 @@ function NewAppointment({ ctx, fixedStaff }: { ctx: PanelCtx; fixedStaff: Id | n
   const [room, setRoom] = useState('')
   const [msg, setMsg] = useState('')
   const experts = ctx.data.staff.filter((s) => s.active && s.role === 'expert')
-  const rooms = sector(ctx.db.business.sector).defaults.rooms
+  const rooms = ctx.branch.rooms
   const sid = fixedStaff ?? staffId
   const duration = ids.reduce((a, id) => a + (ctx.data.services.find((s) => s.id === id)?.durationMin ?? 0), 0)
 
@@ -208,11 +207,15 @@ function NewAppointment({ ctx, fixedStaff }: { ctx: PanelCtx; fixedStaff: Id | n
           <StaffPicker staff={experts} value={staffId} onChange={(id) => { setStaffId(id); reset() }} />
         </>
       )}
-      <label htmlFor="wr">{t('appt.room')}</label>
-      <select id="wr" value={room} onChange={(e) => { setRoom(e.target.value); reset() }}>
-        <option value="">{t('appt.noRoom')}</option>
-        {rooms.map((r) => <option key={r}>{r}</option>)}
-      </select>
+      {rooms.length > 0 && (
+        <>
+          <label htmlFor="wr">{t('appt.room')}</label>
+          <select id="wr" value={room} onChange={(e) => { setRoom(e.target.value); reset() }}>
+            <option value="">{t('appt.noRoom')}</option>
+            {rooms.map((r) => <option key={r}>{r}</option>)}
+          </select>
+        </>
+      )}
       <label htmlFor="wn">{t('appt.customerName')}</label>
       <input id="wn" value={name} onChange={(e) => setName(e.target.value)} autoComplete="off" />
       <label htmlFor="wp">{t('appt.phoneHint')}</label>

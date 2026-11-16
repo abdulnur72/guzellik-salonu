@@ -109,3 +109,4 @@ summary { cursor: pointer; font-weight: 700 }
   .narrow-card { max-width: 480px; margin-left: auto; margin-right: auto }
   .tabs { max-width: 560px }
 }
+.filebtn { cursor: pointer; margin: 0; font-size: 14px; color: var(--ink) }

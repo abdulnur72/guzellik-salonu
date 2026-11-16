@@ -29,10 +29,15 @@ function loadSession(key: string): Session {
 
 export function PanelPage() {
   const { slug } = useParams()
+  // Şube değişince oturum ve sekme sıfırlansın
+  return <Panel key={slug} slug={slug} />
+}
+
+function Panel({ slug }: { slug: string | undefined }) {
   const { db, data } = useBranch(slug)
   const sKey = 'salon-session-' + slug
   const [session, setSessionState] = useState<Session>(() => loadSession(sKey))
-  const [tab, setTab] = useState<Tab>('staff')
+  const [tab, setTab] = useState<Tab>(() => (session?.kind === 'manager' ? 'manager' : 'staff'))
   const fmt = useMoney(db.business)
   const clock = useClock(db.business, data?.branch ?? db.branches[0].branch)
 

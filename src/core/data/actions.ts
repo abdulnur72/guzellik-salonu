@@ -4,6 +4,7 @@
 import type {
   Appointment,
   AppointmentStatus,
+  Business,
   BranchData,
   Customer,
   Id,
@@ -40,6 +41,37 @@ function pick(b: BranchData, ids: Id[]) {
   return ids.map((id) => b.services.find((s) => s.id === id)).filter(Boolean) as Service[]
 }
 
+/**
+ * Seanslı paket içeren randevu "Geldi" olunca paket açılır ve ilk seans
+ * düşülmüş olur (ör. 6 seanslık pakette 5 kalır). Müşterisi olmayan
+ * kayıtta paket açılmaz.
+ */
+function openPackages(b: BranchData, a: Appointment) {
+  if (!a.customerId || b.packages.some((p) => p.sourceAppointmentId === a.id)) return
+  for (const s of pick(b, a.serviceIds)) {
+    if (!s.sessions) continue
+    b.packages.push({
+      id: uid(),
+      branchId: b.branch.id,
+      customerId: a.customerId,
+      serviceName: s.name,
+      total: s.sessions,
+      remaining: s.sessions - 1,
+      staffId: a.staffId,
+      date: a.date,
+      sourceAppointmentId: a.id,
+    })
+  }
+}
+
+function closePackages(b: BranchData, apptId: Id) {
+  b.packages = b.packages.filter((p) => p.sourceAppointmentId !== apptId)
+}
+
+/** Seçilen işlemler arasında seanslı paket var mı (paket için müşteri adı şart) */
+export const hasPackage = (services: Service[], ids: Id[]) =>
+  ids.some((id) => services.find((s) => s.id === id)?.sessions)
+
 export const totals = (list: Service[]) => ({
   price: list.reduce((t, s) => t + s.price, 0),
   duration: list.reduce((t, s) => t + s.durationMin, 0),
@@ -52,7 +84,7 @@ export function recordWalkIn(
 ) {
   onBranch(branchId, (b) => {
     const sel = pick(b, p.serviceIds)
-    b.appointments.push({
+    const a: Appointment = {
       id: uid(),
       branchId,
       date: p.date,
@@ -66,7 +98,9 @@ export function recordWalkIn(
       status: 'done',
       payment: p.payment,
       walkIn: true,
-    })
+    }
+    b.appointments.push(a)
+    openPackages(b, a)
   })
 }
 
@@ -143,6 +177,8 @@ export function setStatus(branchId: Id, apptId: Id, status: AppointmentStatus, p
     a.status = status
     a.payment = status === 'done' ? payment : undefined
     if (status !== 'cancelled') a.cancelledByCustomer = undefined
+    if (status === 'done') openPackages(b, a)
+    else closePackages(b, a.id)
   })
 }
 
@@ -159,6 +195,52 @@ export function cancelByCustomer(branchId: Id, apptId: Id) {
 export function deleteAppointment(branchId: Id, apptId: Id) {
   onBranch(branchId, (b) => {
     b.appointments = b.appointments.filter((a) => a.id !== apptId)
+    closePackages(b, apptId)
+  })
+}
+
+// --- Seanslı paket ---
+
+export function consumeSession(branchId: Id, packageId: Id) {
+  onBranch(branchId, (b) => {
+    const p = b.packages.find((x) => x.id === packageId)
+    if (p && p.remaining > 0) p.remaining -= 1
+  })
+}
+
+// --- Oda / cihaz ---
+
+export function addRoom(branchId: Id, name: string) {
+  onBranch(branchId, (b) => {
+    const n = name.trim()
+    if (n && !b.branch.rooms.includes(n)) b.branch.rooms.push(n)
+  })
+}
+
+export function removeRoom(branchId: Id, name: string) {
+  onBranch(branchId, (b) => {
+    b.branch.rooms = b.branch.rooms.filter((r) => r !== name)
+  })
+}
+
+// --- Stok ---
+
+export function addStock(branchId: Id, p: { name: string; qty: number; min: number }) {
+  onBranch(branchId, (b) => {
+    b.stock.push({ id: uid(), branchId, ...p })
+  })
+}
+
+export function adjustStock(branchId: Id, id: Id, delta: number) {
+  onBranch(branchId, (b) => {
+    const s = b.stock.find((x) => x.id === id)
+    if (s) s.qty = Math.max(0, s.qty + delta)
+  })
+}
+
+export function removeStock(branchId: Id, id: Id) {
+  onBranch(branchId, (b) => {
+    b.stock = b.stock.filter((x) => x.id !== id)
   })
 }
 
@@ -233,10 +315,16 @@ export function updateBranch(branchId: Id, patch: Partial<Omit<BranchData['branc
 }
 
 export function updateBusinessName(name: string) {
-  mutate((db) => {
-    db.business.name = name
-  })
+  updateBusiness({ name })
 }
+
+export function updateBusiness(patch: Partial<Omit<Business, 'id'>>) {
+  mutate((db) => Object.assign(db.business, patch))
+}
+
+/** Aylık abonelik: ilk şube + her ek şube */
+export const monthlyFee = (b: Pick<Business, 'feeFirst' | 'feeExtra'>, branchCount: number) =>
+  branchCount ? b.feeFirst + (branchCount - 1) * b.feeExtra : 0
 
 export function addBranch(name: string): string {
   let slug = ''

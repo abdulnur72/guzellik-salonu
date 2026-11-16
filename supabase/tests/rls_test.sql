@@ -105,3 +105,35 @@ set role anon;
 do $$ begin assert public_branch('lila') is null, 'aboneliği biten şubenin randevu sayfası kapanmalı'; end $$;
 reset role;
 \echo 'TUM VERITABANI TESTLERI GECTI'
+
+-- 6) Seanslı paket: "Geldi" -> paket açılır, "Geri al" -> silinir
+update businesses set paid_until = null;
+insert into services (id, branch_id, category, name, duration_min, price, sessions) values
+  ('40000000-0000-0000-0000-000000000009', '20000000-0000-0000-0000-000000000001', 'Seanslı Paketler', 'Lazer paketi (6 seans)', 30, 6000, 6);
+insert into customers (id, branch_id, name) values ('50000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', 'Gül');
+insert into appointments (id, branch_id, date, time, staff_id, customer_id, service_ids, status) values
+  ('60000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000001', current_date, '15:00',
+   '30000000-0000-0000-0000-000000000001', '50000000-0000-0000-0000-000000000001', array['40000000-0000-0000-0000-000000000009']::uuid[], 'booked');
+update appointments set status = 'done', payment = 'card' where id = '60000000-0000-0000-0000-000000000001';
+do $$ declare r session_packages; begin
+  select * into r from session_packages where source_appointment_id = '60000000-0000-0000-0000-000000000001';
+  assert r.total = 6 and r.remaining = 5, 'paket 5/6 açılmalı';
+end $$;
+-- Uzman (kendi müşterisi) paketi görür ve seans düşer; diğer uzman göremez; stok göremez
+set role authenticated;
+set test.uid = '00000000-0000-0000-0000-00000000000b';
+update session_packages set remaining = remaining - 1;
+do $$ declare n int; begin
+  select remaining into n from session_packages; assert n = 4, 'uzman seans düşebilmeli';
+  select count(*) into n from stock_items; assert n = 0;
+end $$;
+set test.uid = '00000000-0000-0000-0000-00000000000c';
+do $$ declare n int; begin
+  select count(*) into n from session_packages; assert n = 0, 'başka uzman paketi görmemeli';
+end $$;
+reset role;
+update appointments set status = 'booked' where id = '60000000-0000-0000-0000-000000000001';
+do $$ begin
+  assert not exists (select 1 from session_packages), '"Geri al" paketi silmeli';
+end $$;
+\echo 'PAKET TESTLERI GECTI'

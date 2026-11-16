@@ -19,5 +19,13 @@ export const guzellik: SectorPackage = {
     openMin: 9 * 60,
     closeMin: 20 * 60,
     rooms: ['Oda 1', 'Oda 2', 'Lazer cihazı', 'Cilt bakım odası', 'Makyaj köşesi'],
+    stock: [
+      ['Kalıcı oje', 12, 4],
+      ['Jel / protez tırnak malzemesi', 8, 3],
+      ['Ağda (kutu)', 6, 3],
+      ['Kirpik seti', 10, 4],
+      ['Cilt bakım serumu', 5, 2],
+      ['Tek kullanımlık havlu', 60, 20],
+    ],
   },
 }

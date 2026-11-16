@@ -38,6 +38,7 @@ export function newBranchData(businessId: Id, name: string, slug: string): Branc
       openMin: pkg.defaults.openMin,
       closeMin: pkg.defaults.closeMin,
       managerPin: '1234',
+      rooms: [...pkg.defaults.rooms],
     },
     staff: [],
     services: pkg.catalog.flatMap((c) =>
@@ -55,7 +56,23 @@ export function newBranchData(businessId: Id, name: string, slug: string): Branc
     customers: [],
     appointments: [],
     expenses: [],
+    packages: [],
+    stock: defaultStock(branchId),
   }
+}
+
+function defaultStock(branchId: Id) {
+  return sector('guzellik').defaults.stock.map(([name, qty, min]) => ({ id: uid(), branchId, name, qty, min }))
+}
+
+/** Eski sürümde kaydedilmiş veride eksik alanları tamamlar */
+function normalize(db: DemoDatabase): DemoDatabase {
+  for (const b of db.branches) {
+    b.packages ??= []
+    b.stock ??= defaultStock(b.branch.id)
+    b.branch.rooms ??= [...sector(db.business.sector).defaults.rooms]
+  }
+  return db
 }
 
 export function seedDemo(): DemoDatabase {
@@ -91,7 +108,7 @@ function load(): DemoDatabase {
     const raw = localStorage.getItem(KEY)
     if (raw) {
       const db = JSON.parse(raw) as DemoDatabase
-      if (db?.version === 1 && db.branches?.length) return db
+      if (db?.version === 1 && db.branches?.length) return normalize(db)
     }
   } catch {
     /* bozuk ya da erişilemeyen depolama: yeni demo ile başla */

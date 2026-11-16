@@ -4,6 +4,7 @@ import { useDb } from './core/data/demoStore'
 import { applyTheme, sector } from './sectors'
 import { BookingPage } from './pages/BookingPage'
 import { HomePage } from './pages/HomePage'
+import { OwnerPage } from './pages/OwnerPage'
 import { PanelPage } from './pages/PanelPage'
 
 export function App() {
@@ -17,6 +18,7 @@ export function App() {
       <div className="pole" />
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/sahip" element={<OwnerPage />} />
         <Route path="/s/:slug" element={<PanelPage />} />
         <Route path="/r/:slug" element={<BookingPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

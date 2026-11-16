@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { updateCustomer } from '../../core/data/actions'
+import { consumeSession, updateCustomer } from '../../core/data/actions'
 import { shortDate } from '../../core/time'
 import type { Customer, Id } from '../../core/types'
 import { t } from '../../i18n'
@@ -53,6 +53,7 @@ function CustomerDetail({ ctx, c, onClose, showMoney }: { ctx: PanelCtx; c: Cust
     .filter((a) => a.customerId === c.id && a.status === 'done')
     .sort((a, b) => b.date.localeCompare(a.date))
   const set = (patch: Partial<Customer>) => updateCustomer(ctx.branch.id, c.id, patch)
+  const packs = ctx.data.packages.filter((p) => p.customerId === c.id && p.remaining > 0)
   return (
     <div className="card">
       <div className="row" style={{ alignItems: 'center' }}>
@@ -81,6 +82,29 @@ function CustomerDetail({ ctx, c, onClose, showMoney }: { ctx: PanelCtx; c: Cust
       <label>{t('mgr.allergy')}</label>
       <input defaultValue={c.allergyNote || ''} onBlur={(e) => set({ allergyNote: e.target.value })} />
       <p className="mute small">{t('mgr.allergyHint')}</p>
+      {packs.length > 0 && (
+        <>
+          <label>{t('pkg.remaining')}</label>
+          <ul className="list">
+            {packs.map((p) => (
+              <li key={p.id}>
+                <span>
+                  {p.serviceName}: <b>{p.remaining}/{p.total}</b>
+                </span>
+                <button
+                  className="btn2"
+                  onClick={() =>
+                    confirm(t('pkg.useConfirm', { paket: p.serviceName, kalan: p.remaining })) &&
+                    consumeSession(ctx.branch.id, p.id)
+                  }
+                >
+                  {t('pkg.use')}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
       <label>{t('mgr.history')}</label>
       <ul className="list">
         {done.slice(0, 6).map((a) => (

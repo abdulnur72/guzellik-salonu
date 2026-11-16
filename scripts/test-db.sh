@@ -6,5 +6,5 @@ cd "$(dirname "$0")/.."
 P="psql -v ON_ERROR_STOP=1 -q"
 $P -c "drop database if exists salon_test" -c "create database salon_test"
 $P -d salon_test -f supabase/tests/auth_stub.sql
-$P -d salon_test -f supabase/migrations/0001_init.sql
+for f in supabase/migrations/*.sql; do $P -d salon_test -f "$f"; done
 $P -d salon_test -f supabase/tests/rls_test.sql
