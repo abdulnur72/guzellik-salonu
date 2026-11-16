@@ -3,6 +3,8 @@ import {
   addExpense, addService, addStaff, removeExpense, removeService, removeStaff,
   updateBranch, updateBusinessName, updateService, updateStaff,
 } from '../../core/data/actions'
+import { loginError, loginManager } from '../../core/data/auth'
+import { isDemo } from '../../core/data/mode'
 import { expensesTotal, paymentSplit, periodTotals } from '../../core/reports'
 import { addDays, monthStart, shortDate } from '../../core/time'
 import type { StaffRole } from '../../core/types'
@@ -66,17 +68,22 @@ export function ManagerView({ ctx }: { ctx: PanelCtx }) {
 
 function ManagerLogin({ ctx }: { ctx: PanelCtx }) {
   const [pin, setPin] = useState('')
+  const [busy, setBusy] = useState(false)
   return (
-    <form className="card narrow-card" onSubmit={(e) => {
+    <form className="card narrow-card" onSubmit={async (e) => {
       e.preventDefault()
-      if (pin === ctx.branch.managerPin) ctx.setSession({ kind: 'manager' })
-      else alert(t('common.wrongPin'))
+      if (busy) return
+      setBusy(true)
+      const r = await loginManager(ctx.branch, pin)
+      setBusy(false)
+      if (r.ok) ctx.setSession({ kind: 'manager', token: r.token })
+      else alert(loginError(r.reason))
     }}>
       <h2>{t('mgr.loginTitle')}</h2>
-      <p className="mute" style={{ margin: '0 0 8px' }}>{t('mgr.loginInfo')}</p>
+      <p className="mute" style={{ margin: '0 0 8px' }}>{t('mgr.loginInfo')}{isDemo && ' ' + t('common.demoPin')}</p>
       <label htmlFor="pin">PIN</label>
       <input id="pin" type="password" inputMode="numeric" maxLength={8} autoComplete="off" value={pin} onChange={(e) => setPin(e.target.value)} />
-      <button className="go">{t('common.enter')}</button>
+      <button className="go" disabled={busy}>{t('common.enter')}</button>
     </form>
   )
 }
@@ -225,7 +232,7 @@ function StaffCard({ ctx }: { ctx: PanelCtx }) {
             </span>
             <span className="actions end">
               <PhotoButton ctx={ctx} staffId={p.id} label={t('common.photo')} />
-              {p.pin && <button className="btn2" onClick={() => updateStaff(b, p.id, { pin: undefined })}>{t('mgr.resetPin')}</button>}
+              {p.pin && <button className="btn2" onClick={() => updateStaff(b, p.id, { pin: '' })}>{t('mgr.resetPin')}</button>}
               <button className="btn2" onClick={() => confirm(t('mgr.removeStaffConfirm', { ad: p.name })) && removeStaff(b, p.id)}>{t('common.delete')}</button>
             </span>
           </li>

@@ -1,6 +1,7 @@
 import type { Branch, BranchData, DemoDatabase, Id, IsoDate, Staff } from '../../core/types'
 
-export type Session = { kind: 'staff'; staffId: Id } | { kind: 'manager' } | null
+/** token: gerçek modda sunucunun verdiği oturum anahtarı */
+export type Session = { kind: 'staff'; staffId: Id; token?: string } | { kind: 'manager'; token?: string } | null
 
 export interface PanelCtx {
   db: DemoDatabase

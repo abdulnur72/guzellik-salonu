@@ -3,7 +3,7 @@ import type { Branch, Business } from '../core/types'
 import { businessToday, money, zonedParts } from '../core/time'
 
 /** İş gününü ve şu anki dakikayı verir; dakikada bir yenilenir (gece açık kalan sayfa için). */
-export function useClock(business: Business, branch: Branch) {
+export function useClock(business: Business, branch: Pick<Branch, 'dayCutoffHour'> | undefined) {
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 60_000)
@@ -11,7 +11,7 @@ export function useClock(business: Business, branch: Branch) {
   }, [])
   const z = zonedParts(now, business.timeZone)
   return {
-    today: businessToday(now, business.timeZone, branch.dayCutoffHour),
+    today: businessToday(now, business.timeZone, branch?.dayCutoffHour ?? 0),
     calendarToday: z.date,
     nowMin: z.minutes,
   }

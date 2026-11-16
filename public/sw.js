@@ -1,6 +1,6 @@
 // Basit servis çalışanı: uygulama kabuğunu önbelleğe alır, çevrimdışıyken
-// son açılan sayfayı gösterir. Veri istekleri (Supabase) önbelleğe alınmaz.
-const CACHE = 'salon-v1'
+// son açılan sayfayı gösterir. Veri istekleri (/api) hiç önbelleğe alınmaz.
+const CACHE = 'salon-v2'
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(['/', '/manifest.webmanifest', '/icon.svg'])))
   self.skipWaiting()
@@ -11,15 +11,18 @@ self.addEventListener('activate', (e) => {
 })
 self.addEventListener('fetch', (e) => {
   const req = e.request
-  if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return
+  const url = new URL(req.url)
+  if (req.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return
   if (req.mode === 'navigate') {
     e.respondWith(fetch(req).catch(() => caches.match('/')))
     return
   }
   e.respondWith(
     caches.match(req).then((hit) => hit || fetch(req).then((res) => {
-      const copy = res.clone()
-      caches.open(CACHE).then((c) => c.put(req, copy))
+      if (res.ok) {
+        const copy = res.clone()
+        caches.open(CACHE).then((c) => c.put(req, copy))
+      }
       return res
     }))
   )

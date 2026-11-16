@@ -12,15 +12,15 @@ export const FLOWER = (
   </svg>
 )
 
-export function SalonHeader({ business, branch, children }: { business: Business; branch: Branch; children?: React.ReactNode }) {
+export function SalonHeader({ business, branch, children }: { business: Pick<Business, 'name'>; branch?: Branch; children?: React.ReactNode }) {
   return (
     <header className="hd">
       <div className="brand">
-        <div className="logo">{branch.logo ? <img src={branch.logo} alt="" /> : FLOWER}</div>
+        <div className="logo">{branch?.logo ? <img src={branch.logo} alt="" /> : FLOWER}</div>
         <div>
           <h1>{business.name}</h1>
           <div className="sub">
-            {branch.name !== 'Merkez' ? branch.name + ' · ' : ''}
+            {branch && branch.name !== 'Merkez' ? branch.name + ' · ' : ''}
             {t('app.subtitle')}
           </div>
           {isDemo && <span className="chip">{t('app.demoChip')}</span>}

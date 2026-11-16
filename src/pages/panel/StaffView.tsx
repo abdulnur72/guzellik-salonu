@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { deleteAppointment, hasPackage, recordWalkIn, updateStaff } from '../../core/data/actions'
+import { deleteAppointment, hasPackage, recordWalkIn } from '../../core/data/actions'
+import { loginError, loginStaff } from '../../core/data/auth'
 import { periodTotals } from '../../core/reports'
 import { addDays, monthStart, toClock } from '../../core/time'
 import type { Id, PaymentMethod } from '../../core/types'
@@ -64,12 +65,15 @@ export function StaffView({ ctx }: { ctx: PanelCtx }) {
 function PinCard({ ctx, staffId, onDone }: { ctx: PanelCtx; staffId: Id; onDone: () => void }) {
   const p = ctx.data.staff.find((s) => s.id === staffId)!
   const [pin, setPin] = useState('')
-  const go = () => {
-    if (!p.pin) {
-      if (pin.length < 4) return alert(t('staff.pinTooShort'))
-      updateStaff(ctx.branch.id, p.id, { pin })
-    } else if (pin !== p.pin) return alert(t('common.wrongPin'))
-    ctx.setSession({ kind: 'staff', staffId: p.id })
+  const [busy, setBusy] = useState(false)
+  const go = async () => {
+    if (busy) return
+    if (!p.pin && pin.length < 4) return alert(t('staff.pinTooShort'))
+    setBusy(true)
+    const r = await loginStaff(ctx.branch, p.id, pin)
+    setBusy(false)
+    if (!r.ok) return alert(loginError(r.reason))
+    ctx.setSession({ kind: 'staff', staffId: p.id, token: r.token })
     onDone()
   }
   return (
@@ -78,7 +82,7 @@ function PinCard({ ctx, staffId, onDone }: { ctx: PanelCtx; staffId: Id; onDone:
       <p className="mute" style={{ margin: 0 }}>{p.pin ? t('staff.enterPin') : t('staff.setPin')}</p>
       <label htmlFor="spin">{t('staff.pinLabel')}</label>
       <input id="spin" type="password" inputMode="numeric" maxLength={8} autoComplete="off" value={pin} onChange={(e) => setPin(e.target.value)} autoFocus />
-      <button className="go">{t('common.enter')}</button>
+      <button className="go" disabled={busy}>{t('common.enter')}</button>
     </form>
   )
 }

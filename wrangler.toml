@@ -1,0 +1,10 @@
+# Cloudflare Pages ayarları. Uygulama: dist/, sunucu: functions/, veritabanı: D1.
+name = "guzellik-salonu"
+pages_build_output_dir = "./dist"
+compatibility_date = "2026-10-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "guzellik-salonu"
+database_id = "00000000-0000-0000-0000-000000000000" # kurulumda gerçek kimlikle değişir
+migrations_dir = "db/migrations"

@@ -2,65 +2,100 @@
 // Sahip tek linkten girer, bütün şubelerin bu ayki durumunu görür,
 // şube ekler ve istediği şubenin yönetici ekranına geçer.
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { addBranch, monthlyFee, updateBusiness } from '../core/data/actions'
+import { loginError, loginOwner, logout } from '../core/data/auth'
 import { useDb } from '../core/data/demoStore'
+import { isDemo } from '../core/data/mode'
+import { disconnect, onAuthLost, onError, useConnection, useIndex } from '../core/data/remote'
 import { expensesTotal, periodTotals } from '../core/reports'
 import { businessToday, monthStart } from '../core/time'
 import { t } from '../i18n'
 import { useMoney } from '../ui/hooks'
 import { SalonHeader, Strip } from '../ui/layout'
 import { StatTiles, Table } from '../ui/pickers'
+import { LoadState } from './PanelPage'
 
 const OWNER_KEY = 'salon-owner'
 
-function isOwnerSession() {
+/** Sahip oturumu: gerçek modda sunucunun verdiği anahtar, demo modunda '1' */
+function ownerToken() {
   try {
-    return sessionStorage.getItem(OWNER_KEY) === '1'
+    return sessionStorage.getItem(OWNER_KEY)
   } catch {
-    return false
+    return null
   }
 }
 
 export function OwnerPage() {
-  const db = useDb()
-  const fmt = useMoney(db.business)
-  const nav = useNavigate()
-  const [ok, setOk] = useState(isOwnerSession)
-  const [pin, setPin] = useState('')
-  const [name, setName] = useState('')
-  const [msg, setMsg] = useState('')
-  const [owner, setOwner] = useState({ ownerName: db.business.ownerName, pin: '' })
-  const first = db.branches[0].branch
-
-  const setSession = (v: boolean) => {
-    setOk(v)
+  const [tok, setTok] = useState(ownerToken)
+  const setSession = (v: string | null) => {
+    if (!v && tok && !isDemo) {
+      logout(tok)
+      disconnect()
+    }
+    setTok(v)
     try {
-      if (v) sessionStorage.setItem(OWNER_KEY, '1')
+      if (v) sessionStorage.setItem(OWNER_KEY, v)
       else sessionStorage.removeItem(OWNER_KEY)
     } catch {
       /* yok say */
     }
   }
+  useEffect(
+    () =>
+      onAuthLost(() => {
+        setTok(null)
+        try {
+          sessionStorage.removeItem(OWNER_KEY)
+        } catch {
+          /* yok say */
+        }
+      }),
+    [],
+  )
+  useEffect(() => onError((code) => alert(code === 'network' ? t('common.network') : t('common.saveError'))), [])
+  return tok ? <OwnerPanel token={tok} setSession={setSession} /> : <OwnerLogin onLogin={setSession} />
+}
 
-  if (!ok)
-    return (
-      <div className="wrap narrow">
-        <SalonHeader business={db.business} branch={first} />
-        <form className="card" onSubmit={(e) => {
-          e.preventDefault()
-          if (pin === db.business.ownerPin) setSession(true)
-          else alert(t('common.wrongPin'))
-        }}>
-          <h2>{t('owner.loginTitle')}</h2>
-          <p className="mute" style={{ margin: '0 0 8px' }}>{t('owner.loginInfo')}</p>
-          <label htmlFor="opin">PIN</label>
-          <input id="opin" type="password" inputMode="numeric" maxLength={8} autoComplete="off" value={pin} onChange={(e) => setPin(e.target.value)} />
-          <button className="go">{t('common.enter')}</button>
-        </form>
-      </div>
-    )
+function OwnerLogin({ onLogin }: { onLogin: (token: string) => void }) {
+  const idx = useIndex()
+  const [pin, setPin] = useState('')
+  const [busy, setBusy] = useState(false)
+  return (
+    <div className="wrap narrow">
+      <SalonHeader business={{ name: typeof idx === 'object' ? idx.business.name : '' }} />
+      <form className="card" onSubmit={async (e) => {
+        e.preventDefault()
+        if (busy) return
+        setBusy(true)
+        const r = await loginOwner(pin)
+        setBusy(false)
+        if (r.ok) onLogin(r.token ?? '1')
+        else alert(loginError(r.reason))
+      }}>
+        <h2>{t('owner.loginTitle')}</h2>
+        <p className="mute" style={{ margin: '0 0 8px' }}>{t('owner.loginInfo')}{isDemo && ' ' + t('common.demoPin')}</p>
+        <label htmlFor="opin">PIN</label>
+        <input id="opin" type="password" inputMode="numeric" maxLength={8} autoComplete="off" value={pin} onChange={(e) => setPin(e.target.value)} />
+        <button className="go" disabled={busy}>{t('common.enter')}</button>
+      </form>
+    </div>
+  )
+}
+
+function OwnerPanel({ token, setSession }: { token: string; setSession: (v: string | null) => void }) {
+  const conn = useConnection(isDemo ? null : token)
+  const db = useDb()
+  const fmt = useMoney(db.business)
+  const nav = useNavigate()
+  const [name, setName] = useState('')
+  const [msg, setMsg] = useState('')
+  const [owner, setOwner] = useState({ ownerName: db.business.ownerName, pin: '' })
+  useEffect(() => setOwner((o) => ({ ...o, ownerName: db.business.ownerName })), [db.business.ownerName])
+  if (conn !== 'ready' || !db.branches.length) return <LoadState state={conn === 'ready' ? 'loading' : conn} />
+  const first = db.branches[0].branch
 
   const rows = db.branches.map((d) => {
     const today = businessToday(new Date(), db.business.timeZone, d.branch.dayCutoffHour)
@@ -74,7 +109,7 @@ export function OwnerPage() {
 
   const openBranch = (slug: string) => {
     try {
-      sessionStorage.setItem('salon-session-' + slug, JSON.stringify({ kind: 'manager' }))
+      sessionStorage.setItem('salon-session-' + slug, JSON.stringify({ kind: 'manager', token: isDemo ? undefined : token }))
     } catch {
       /* yok say */
     }
@@ -153,7 +188,7 @@ export function OwnerPage() {
               setMsg(t('mgr.pinChanged'))
             }}>{t('mgr.changePin')}</button>
           </div>
-          <button className="btn2 block" onClick={() => setSession(false)}>{t('common.logout')}</button>
+          <button className="btn2 block" onClick={() => setSession(null)}>{t('common.logout')}</button>
         </div>
       </div>
     </div>

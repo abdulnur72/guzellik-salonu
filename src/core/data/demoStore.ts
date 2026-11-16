@@ -1,10 +1,12 @@
-// Demo deposu: Supabase bağlanana kadar tüm kayıtları bu tarayıcının
-// localStorage'ında tutar. Ekranlar veriye yalnızca bu modül ve
-// actions.ts üzerinden ulaşır; Supabase'e geçişte değişecek yer burasıdır.
+// Kayıt deposu. Ekranlar veriye yalnızca bu modül ve actions.ts üzerinden
+// ulaşır. Demo modunda kayıtlar bu tarayıcının localStorage'ında durur;
+// gerçek modda remote.ts kayıtları sunucuyla eşitler.
 
 import { useSyncExternalStore } from 'react'
 import type { BranchData, DemoDatabase, Id } from '../types'
 import { sector } from '../../sectors'
+import { isDemo } from './mode'
+import * as remote from './remote'
 
 const KEY = 'salon-db-v1'
 
@@ -116,10 +118,24 @@ function load(): DemoDatabase {
   return seedDemo()
 }
 
-let db: DemoDatabase = typeof localStorage === 'undefined' ? seedDemo() : load()
+/** Gerçek modda sunucudan veri gelene kadar gösterilen boş kayıt */
+function blank(): DemoDatabase {
+  return { version: 1, business: { ...seedDemo().business, name: '' }, branches: [] }
+}
+
+let db: DemoDatabase = !isDemo ? blank() : typeof localStorage === 'undefined' ? seedDemo() : load()
 const listeners = new Set<() => void>()
 
+remote.attach({
+  get: () => db,
+  set: (next) => {
+    db = next
+    emit()
+  },
+})
+
 function persist() {
+  if (!isDemo) return remote.localChanged()
   try {
     localStorage.setItem(KEY, JSON.stringify(db))
   } catch {
@@ -132,7 +148,7 @@ function emit() {
 }
 
 // Aynı tarayıcıda başka sekmede yapılan değişiklikleri al
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && isDemo) {
   window.addEventListener('storage', (e) => {
     if (e.key === KEY) {
       db = load()
@@ -174,18 +190,21 @@ export function useBranch(slug: string | undefined): { db: DemoDatabase; data: B
   return { db: d, data: d.branches.find((b) => b.branch.slug === slug) }
 }
 
-/** Müşterinin bu cihazdan aldığı randevular ("Randevularım") */
-const MY_KEY = 'salon-my-appts'
-export function myAppointmentIds(): Id[] {
+/** Müşterinin bu cihazdan aldığı randevular ("Randevularım"); token iptal için gerekir */
+const MY_KEY = 'salon-my-appts-v2'
+export type MyAppointment = { id: Id; token?: string }
+export function myAppointments(): MyAppointment[] {
   try {
-    return JSON.parse(localStorage.getItem(MY_KEY) || '[]')
+    const v = JSON.parse(localStorage.getItem(MY_KEY) || '[]')
+    return Array.isArray(v) ? v : []
   } catch {
     return []
   }
 }
-export function rememberMyAppointment(id: Id) {
+export const myAppointmentIds = () => myAppointments().map((x) => x.id)
+export function rememberMyAppointment(id: Id, token?: string) {
   try {
-    localStorage.setItem(MY_KEY, JSON.stringify([...myAppointmentIds(), id]))
+    localStorage.setItem(MY_KEY, JSON.stringify([...myAppointments(), { id, token }].slice(-30)))
   } catch {
     /* yok say */
   }

@@ -22,21 +22,28 @@ Güzellik salonları için randevu, personel, ciro ve müşteri takip uygulamas�
 
 Telefonda tek sütun, bilgisayarda (960 px üstü) iki sütun. Telefona ve bilgisayara "Ana ekrana ekle / Uygulama olarak yükle" ile kurulur (PWA).
 
-### Demo modu
-Supabase bilgileri girilmeden önce uygulama **demo modunda** çalışır: kayıtlar o cihazın tarayıcısında durur. Demo yönetici PIN'i `1234`.
+### Gerçek mod ve demo modu
+Yayındaki uygulama **gerçek moddadır**: kayıtlar Cloudflare D1 veritabanında durur, müşteri kendi telefonundan randevu alır, salon panelindeki bütün cihazlar aynı kayıtları görür (açık panel 10 saniyede bir güncellenir). PIN'leri sunucu doğrular; PIN'ler tarayıcıya hiç gönderilmez.
+
+`npm run dev` ise **demo modunda** açılır: sunucu gerekmez, kayıtlar o tarayıcıda durur, demo PIN'i `1234`.
 
 ## Hesap kurulumu
 
-Cloudflare ve Supabase hesaplarının açılması adım adım [KURULUM.md](KURULUM.md) dosyasında. Supabase'e yüklenecek tek dosya: `supabase/kurulum.sql`.
+Tek hesap gerekir: Cloudflare (ücretsiz). Adımlar [KURULUM.md](KURULUM.md) dosyasında.
 
 ## Kurulum (geliştirici)
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173
+npm run dev        # demo modu, http://localhost:5173
 npm test           # çekirdek testleri (iş günü, boş saat, ciro, online randevu)
-npm run build      # dist/ klasörü Cloudflare Pages'e yüklenir
-npm run test:db    # (isteğe bağlı) şema ve güvenlik kuralları, yerel PostgreSQL gerekir
+
+# Sunucuyla birlikte yerelde (gerçek mod, http://localhost:8788)
+npm run db:local
+npx tsx scripts/seed.ts --owner-pin 111111 --manager-pin 222222 > seed.sql
+npx wrangler d1 execute guzellik-salonu --local --file seed.sql
+npm run preview
+node scripts/api-smoke.mjs 111111 222222   # yetki ve randevu denemeleri (başka terminalde)
 ```
 
 ## Klasör yapısı
@@ -44,34 +51,35 @@ npm run test:db    # (isteğe bağlı) şema ve güvenlik kuralları, yerel Post
 ```
 src/
   core/            Ortak çekirdek (dört sektörde aynı)
-    types.ts         Veri modeli (Supabase tablolarıyla aynı)
+    types.ts         Veri modeli
     time.ts          İş günü, tarih/saat, para biçimi
     scheduling.ts    Boş saat ve personel çakışma hesabı
     reports.ts       Ciro, personel payı, gider
-    data/            Veri katmanı: demoStore (tarayıcı), actions (işlemler), supabase
+    data/            Veri katmanı: demoStore (kayıt), actions (işlemler), remote (sunucu), rows (satır dönüşümü)
   sectors/         Sektör paketleri: renkler, hizmet kataloğu, varsayılanlar
     guzellik/        Güzellik salonu (ilk paket)
   i18n/tr.ts       Ekrandaki tüm yazılar (ikinci dil = bu dosyanın çevirisi)
   pages/           Ekranlar: HomePage, PanelPage (+ panel/), BookingPage
   ui/              Ortak parçalar (hizmet/personel/saat seçici, tablo)
-supabase/
-  migrations/      Veritabanı şeması ve satır seviyesinde güvenlik kuralları
-  tests/           Şema testleri
+server/api.ts      Sunucu (Pages Functions)
+db/migrations/     D1 veritabanı şeması
+scripts/           seed.ts (örnek salon), api-smoke.mjs (sunucu denemesi)
 ```
 
 Para birimi, saat dilimi, dil ve ülke her işletmenin ayarıdır (varsayılan TRY, Europe/Istanbul, tr-TR, TR).
 
-## Veritabanı (Supabase)
+## Sunucu ve veritabanı
 
-`supabase/migrations/0001_init.sql` hazır ve yerelde test edildi:
-- Her işletmenin verisi ayrı; sahip yalnızca kendi işletmesini, şube yöneticisi kendi şubesini, uzman yalnızca kendi randevularını ve müşterilerini görür; gider yalnızca sahip ve yöneticiye açık.
-- Abonelik süresi (`paid_until`) dolunca işletmenin paneli ve müşteri randevu sayfası kapanır.
-- Müşteri hesap açmaz: randevu sayfası yalnızca `public_branch`, `public_busy`, `book_appointment`, `cancel_my_appointment`, `my_appointments` fonksiyonlarını çağırabilir. `book_appointment` saati sunucuda tekrar kontrol eder, aynı anda iki kişinin aynı saati almasını engeller.
+- `functions/api/[[route]].ts` → `server/api.ts`: Cloudflare Pages Functions üzerinde çalışan sunucu.
+- `db/migrations/0001_init.sql`: D1 şeması. Kayıtlar tek tabloda JSON olarak durur; her yazmada genel sayaç artar, paneller yalnızca değişen satırları çeker.
+- Yetkiler sunucuda: sahip her şeyi; yönetici yalnızca kendi şubesini; resepsiyon randevu, müşteri, paket ve stoğu; uzman yalnızca kendi randevularını değiştirir. Uzman başkalarının randevu tutarını ve giderleri görmez.
+- Müşteri hesap açmaz: randevu sayfası yalnızca şubenin herkese açık bilgisini ve dolu saatleri (isimsiz) görür. Talep sunucuda tekrar kontrol edilir; aynı saat aynı uzmana iki kez verilmez. Müşteri kendi randevusunu, telefonuna verilen gizli anahtarla görür ve iptal eder.
+- Yanlış PIN 15 dakikada 8 denemeyle, randevu talebi saatte 10 taleple sınırlı.
 
 ## Yol haritası
 
 1. ✅ İskelet, ortak çekirdek, güzellik paketi, demo modunda tam çalışan ekranlar, veritabanı şeması
-2. Cloudflare ve Supabase hesaplarını açmak (KURULUM.md)
-3. Veri katmanını Supabase'e bağlamak: giriş (sahip e-posta ile, personel davet linki ile), ortak kayıtlar
+2. ✅ Ortak veritabanı ve sunucu (Cloudflare Pages + D1): PIN'le giriş, ortak kayıtlar, online randevu
+3. Cloudflare hesabını açıp yayına almak (KURULUM.md)
 4. ✅ Prototipten kalanlar: İşletme (sahip) paneli ve abonelik ücreti, seanslı paketler, stok, oda/cihaz listesi, fotoğraflar, geçen ay görünümü (yedek indirme veritabanına geçince gereksiz)
 5. Pilot salon (2-3 hafta), sonra bayan kuaför, berber, spor salonu paketleri

@@ -1,5 +1,5 @@
-// Ortak çekirdeğin veri modeli. Supabase tablolarıyla birebir eşleşir
-// (bkz. supabase/migrations/0001_init.sql). Alan adları kodda İngilizce,
+// Ortak çekirdeğin veri modeli. Sunucuda her kayıt db/migrations şemasındaki
+// rows tablosunda bir satırdır. Alan adları kodda İngilizce,
 // ekranda görünen her yazı src/i18n içindedir.
 
 export type Id = string

@@ -1,6 +1,6 @@
 /**
  * Seçilen fotoğrafı en fazla 200 piksele küçültüp JPEG olarak döndürür.
- * Demo modunda kayıtla birlikte saklanır; Supabase'e geçince dosya deposuna yüklenecek.
+ * Kayıtla birlikte (personel ya da şube satırında) saklanır.
  */
 export function resizeImage(file: File, max = 200): Promise<string> {
   return new Promise((resolve, reject) => {

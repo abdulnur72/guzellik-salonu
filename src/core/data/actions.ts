@@ -1,5 +1,5 @@
 // Ekranların kullandığı işlemler. Her biri tek bir şubenin verisini değiştirir.
-// Supabase'e geçince aynı imzalarla veritabanına yazacak.
+// Gerçek modda değişiklik demoStore üzerinden sunucuya gönderilir.
 
 import type {
   Appointment,
@@ -261,7 +261,7 @@ export function updateStaff(branchId: Id, staffId: Id, patch: Partial<Omit<Staff
 
 export function removeStaff(branchId: Id, staffId: Id) {
   // Geçmiş ciro kayıtları bozulmasın diye personel silinmez, pasife alınır.
-  updateStaff(branchId, staffId, { active: false, pin: undefined })
+  updateStaff(branchId, staffId, { active: false, pin: '' })
 }
 
 // --- Hizmetler ---

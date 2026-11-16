@@ -2,10 +2,12 @@
 // Müşteri buraya salonun linkinden ya da QR kodundan gelir. Personel,
 // yönetici ve işletme ekranları bu sayfada hiç görünmez.
 
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { cancelByCustomer, requestBooking } from '../core/data/actions'
-import { myAppointmentIds, useBranch } from '../core/data/demoStore'
+import { cancelMyBooking, loadMyBookings, submitBooking, type MyBooking } from '../core/data/booking'
+import { useBranch } from '../core/data/demoStore'
+import { isDemo } from '../core/data/mode'
+import { loadBusy, useConnection } from '../core/data/remote'
 import { daySlots } from '../core/scheduling'
 import { longDate, shortDate } from '../core/time'
 import type { Id } from '../core/types'
@@ -14,16 +16,13 @@ import { useClock, useMoney } from '../ui/hooks'
 import { SalonHeader } from '../ui/layout'
 import { ServicePicker, SlotPicker, StaffPicker } from '../ui/pickers'
 import { isValidTrPhone } from '../ui/whatsapp'
+import { LoadState } from './PanelPage'
 
 export function BookingPage() {
   const { slug } = useParams()
+  const conn = useConnection(null, slug)
   const { data } = useBranch(slug)
-  if (!data)
-    return (
-      <div className="wrap">
-        <div className="card">{t('book.notFound')}</div>
-      </div>
-    )
+  if (!data || conn !== 'ready') return <LoadState state={conn === 'ready' ? 'missing' : conn} />
   return <Booking key={data.branch.id} slug={data.branch.slug} />
 }
 
@@ -43,7 +42,32 @@ function Booking({ slug }: { slug: string }) {
   const [consent, setConsent] = useState(false)
   const [okMsg, setOkMsg] = useState('')
   const [busy, setBusy] = useState(false)
-  const [, force] = useState(0)
+  const [slotsReady, setSlotsReady] = useState(isDemo)
+  const [myList, setMyList] = useState<MyBooking[]>([])
+
+  // Gerçek modda seçilen günün dolu saatleri sunucudan gelir
+  const refreshBusy = useCallback(() => {
+    if (isDemo) return Promise.resolve()
+    setSlotsReady(false)
+    return loadBusy(slug, branch.id, date).then(
+      () => setSlotsReady(true),
+      () => setSlotsReady(true),
+    )
+  }, [slug, branch.id, date])
+  useEffect(() => void refreshBusy(), [refreshBusy])
+
+  const refreshMine = useCallback(() => {
+    loadMyBookings(slug, branch.id).then(
+      (list) =>
+        setMyList(
+          list
+            .filter((a) => a.date >= today && (a.status === 'pending_approval' || a.status === 'booked'))
+            .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time)),
+        ),
+      () => undefined,
+    )
+  }, [slug, branch.id, today])
+  useEffect(() => refreshMine(), [refreshMine])
 
   const services = d.services.filter((s) => !s.hiddenFromCustomers)
   const experts = d.staff.filter((s) => s.active && s.role === 'expert')
@@ -52,7 +76,7 @@ function Booking({ slug }: { slug: string }) {
 
   const slots = useMemo(
     () =>
-      serviceIds.length && experts.length
+      serviceIds.length && experts.length && slotsReady
         ? daySlots(
             { date, durationMin: duration, staffId },
             { openMin: branch.openMin, closeMin: branch.closeMin, today, nowMin },
@@ -60,27 +84,27 @@ function Booking({ slug }: { slug: string }) {
             d.appointments,
           )
         : null,
-    [serviceIds.length, experts.length, date, duration, staffId, branch, today, nowMin, d],
+    [serviceIds.length, experts.length, slotsReady, date, duration, staffId, branch, today, nowMin, d],
   )
 
-  const mine = myAppointmentIds()
-  const myList = d.appointments
-    .filter((a) => mine.includes(a.id) && a.date >= today && (a.status === 'pending_approval' || a.status === 'booked'))
-    .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
-
-  const submit = () => {
+  const submit = async () => {
     if (busy) return
     if (!name.trim() || !phone.trim()) return alert(t('book.missingContact'))
     if (!isValidTrPhone(phone)) return alert(t('book.badPhone'))
     if (!consent) return alert(t('book.missingConsent'))
     if (!serviceIds.length || !time) return alert(t('book.missingSlot'))
     setBusy(true)
-    const r = requestBooking(branch.id, { staffId, serviceIds, date, time, customerName: name, phone, note })
+    const r = await submitBooking(slug, branch.id, { staffId, serviceIds, date, time, customerName: name, phone, note })
     setBusy(false)
     if (!r.ok) {
+      if (r.reason === 'network') return alert(t('common.network'))
+      if (r.reason === 'too_many') return alert(t('book.tooMany'))
       setTime(null)
+      void refreshBusy()
       return alert(t('appt.slotTaken'))
     }
+    void refreshBusy()
+    refreshMine()
     setOkMsg(
       t('book.ok', {
         gun: longDate(date, db.business.locale),
@@ -122,11 +146,11 @@ function Booking({ slug }: { slug: string }) {
                 </span>
                 <button
                   className="btn2"
-                  onClick={() => {
-                    if (confirm(t('book.cancelConfirm'))) {
-                      cancelByCustomer(branch.id, a.id)
-                      force((n) => n + 1)
-                    }
+                  onClick={async () => {
+                    if (!confirm(t('book.cancelConfirm'))) return
+                    if (!(await cancelMyBooking(slug, branch.id, a.id))) alert(t('common.network'))
+                    refreshMine()
+                    void refreshBusy()
                   }}
                 >
                   {t('book.cancelMine')}
