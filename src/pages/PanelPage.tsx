@@ -82,7 +82,7 @@ function Panel({ slug }: { slug: string | undefined }) {
       }),
     [sKey],
   )
-  useEffect(() => onError((code) => alert(code === 'network' ? t('common.network') : t('common.saveError'))), [])
+  useEffect(() => onError((code) => alert(code === 'network' ? t('common.network') : code === 'pin_taken' ? t('common.pinTaken') : t('common.saveError'))), [])
 
   // Oturumdaki personel pasife alındıysa çıkış yap
   const staffGone =

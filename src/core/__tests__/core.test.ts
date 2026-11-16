@@ -130,3 +130,29 @@ describe('seanslı paket ve stok', () => {
     expect(monthlyFee({ feeFirst: 500, feeExtra: 250 }, 3)).toBe(1000)
   })
 })
+
+describe('personel PIN', () => {
+  it('ilk PIN yönetici ya da sahip PIN’iyle aynı olamaz', async () => {
+    const { loginStaff, changeStaffPin, managerPinClashes } = await import('../data/auth')
+    const { updateStaff } = await import('../data/actions')
+    const b = getDb().branches[0]
+    const s = b.staff.find((x) => x.role === 'expert')!
+    updateStaff(b.branch.id, s.id, { pin: '' })
+    const br = getDb().branches[0].branch
+    expect(await loginStaff(br, s.id, br.managerPin)).toEqual({ ok: false, reason: 'pin_taken' })
+    expect(await loginStaff(br, s.id, getDb().business.ownerPin)).toEqual({ ok: false, reason: 'pin_taken' })
+    expect(await loginStaff(br, s.id, '5678')).toEqual({ ok: true })
+    // Kendi PIN'ini değiştirir: eski PIN doğru olmalı, yeni PIN yöneticininkiyle aynı olamaz
+    expect(await changeStaffPin(br, s.id, undefined, '0000', '2468')).toEqual({ ok: false, reason: 'wrong_pin' })
+    expect(await changeStaffPin(br, s.id, undefined, '5678', br.managerPin)).toEqual({ ok: false, reason: 'pin_taken' })
+    expect(await changeStaffPin(br, s.id, undefined, '5678', '12a4')).toEqual({ ok: false, reason: 'bad_pin' })
+    expect(await changeStaffPin(br, s.id, undefined, '5678', '2468')).toEqual({ ok: true })
+    expect(await loginStaff(br, s.id, '5678')).toEqual({ ok: false, reason: 'wrong_pin' })
+    expect(await loginStaff(br, s.id, '2468')).toEqual({ ok: true })
+    // Yönetici de PIN'ini bir personelinkiyle aynı yapamaz
+    expect(managerPinClashes(getDb(), br.id, '2468')).toBe(true)
+    // Yönetici sıfırlayınca personel yeni PIN belirler
+    updateStaff(br.id, s.id, { pin: '' })
+    expect(await loginStaff(br, s.id, '1357')).toEqual({ ok: true })
+  })
+})

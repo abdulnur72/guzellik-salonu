@@ -76,6 +76,7 @@ export async function handle(req: Request, env: Env): Promise<Response> {
     }
     if (m === 'POST' && p[0] === 'login') return json(await api.login(await body(req)))
     if (m === 'POST' && p[0] === 'logout') return json(await api.logout())
+    if (m === 'POST' && p[0] === 'pin') return json(await api.changeOwnPin(await body(req)))
     if (m === 'GET' && p[0] === 'sync') return json(await api.sync(Number(url.searchParams.get('since') || 0)))
     if (m === 'POST' && p[0] === 'write') return json(await api.write(await body(req)))
     return json({ error: 'not_found' }, 404)
@@ -118,6 +119,17 @@ export async function hashPin(pin: string, salt = randomToken(8)) {
 async function checkPin(pin: string, stored: string) {
   const salt = stored.split('$')[0]
   return (await hashPin(pin, salt)) === stored
+}
+
+/** Bu PIN, verilen anahtarlardaki (ya da önekle başlayan) özetlerden biriyle aynı mı? */
+async function pinMatchesAny(db: D1Database, pin: string, q: { keys?: string[]; prefix?: string }) {
+  const { results } = q.prefix
+    ? await db.prepare('SELECT hash FROM secrets WHERE key LIKE ?').bind(q.prefix + '%').all<{ hash: string }>()
+    : q.keys?.length
+      ? await db.prepare(`SELECT hash FROM secrets WHERE key IN (${q.keys.map(() => '?').join(',')})`).bind(...q.keys).all<{ hash: string }>()
+      : { results: [] as { hash: string }[] }
+  for (const r of results) if (await checkPin(pin, r.hash)) return true
+  return false
 }
 
 const validPin = (pin: unknown): pin is string => typeof pin === 'string' && /^\d{4,8}$/.test(pin)
@@ -233,6 +245,36 @@ class Api {
     return this.db.prepare('INSERT INTO attempts (key, ts) VALUES (?, ?)').bind(key, Date.now()).run()
   }
 
+  // --- PIN çakışması ---
+  // Personel PIN'i şubesinin yönetici PIN'iyle ya da sahip PIN'iyle aynı olamaz;
+  // aksi halde o personel yönetici/sahip olarak da girebilirdi. Ret cevabı
+  // diğer PIN hakkında ipucu verdiği için her ret, yanlış PIN denemesi gibi
+  // sayılır ve aynı sınıra tabidir.
+
+  private async staffPinClashes(branchId: string, pin: string) {
+    return pinMatchesAny(this.db, pin, { keys: [`manager:${branchId}`, 'owner'] })
+  }
+
+  private async managerPinClashes(branchId: string, pin: string) {
+    const staff = await this.list(branchId, 'staff')
+    return pinMatchesAny(this.db, pin, { keys: staff.map((s) => `staff:${s.id}`) })
+  }
+
+  private async ownerPinClashes(pin: string) {
+    return pinMatchesAny(this.db, pin, { prefix: 'staff:' })
+  }
+
+  /** Çakışan PIN'i reddeder; ret yanlış deneme sayılır */
+  private async rejectClash(limitKeys: string[]): Promise<never> {
+    for (const k of limitKeys) await this.note(k)
+    throw new HttpError(409, 'pin_taken')
+  }
+
+  private async checkLimit(limitKeys: [string, string]) {
+    if ((await this.limited(limitKeys[0], MAX_PIN_FAILS, PIN_WINDOW_MS)) || (await this.limited(limitKeys[1], MAX_PIN_FAILS * 6, PIN_WINDOW_MS)))
+      throw new HttpError(429, 'too_many')
+  }
+
   // --- Oturum ---
 
   private async session(): Promise<Sess> {
@@ -292,13 +334,13 @@ class Api {
     }
 
     const limitKey = `pin:${key}:${this.ip()}`
-    if ((await this.limited(limitKey, MAX_PIN_FAILS, PIN_WINDOW_MS)) || (await this.limited(`pin:${key}`, MAX_PIN_FAILS * 6, PIN_WINDOW_MS)))
-      throw new HttpError(429, 'too_many')
+    await this.checkLimit([limitKey, `pin:${key}`])
     if (!validPin(pin)) throw new HttpError(400, 'bad_pin')
 
     const stmts: D1PreparedStatement[] = []
     if (firstPin) {
-      // Personelin ilk girişi: PIN'i kendisi belirler
+      // Personelin ilk girişi: PIN'i kendisi belirler (yönetici/sahip PIN'iyle aynı olamaz)
+      if (await this.staffPinClashes(firstPin.staff.branchId, pin)) await this.rejectClash([limitKey, `pin:${key}`])
       stmts.push(this.db.prepare('INSERT OR REPLACE INTO secrets (key, hash) VALUES (?, ?)').bind(secretKey, await hashPin(pin)))
       stmts.push(this.bump(), this.put('staff', firstPin.staff.id, firstPin.staff.branchId, { ...firstPin.staff.data, pin: SECRET_MARK }))
     } else {
@@ -319,6 +361,30 @@ class Api {
     )
     await this.db.batch(stmts)
     return { token, ...sess }
+  }
+
+  /** Girişli personel kendi PIN'ini değiştirir: önce eski PIN'i doğrular */
+  async changeOwnPin(b: Record<string, unknown>) {
+    const s = await this.session()
+    if (!s.staffId || !s.branchId) throw new HttpError(403, 'forbidden')
+    const key = `staff:${s.staffId}`
+    const limitKey = `pin:${key}:${this.ip()}`
+    await this.checkLimit([limitKey, `pin:${key}`])
+    const { current, next } = b
+    if (!validPin(next)) throw new HttpError(400, 'bad_pin')
+    const old = await this.db.prepare('SELECT hash FROM secrets WHERE key = ?').bind(key).first<{ hash: string }>()
+    if (!old || typeof current !== 'string' || !(await checkPin(current, old.hash))) {
+      await this.note(limitKey)
+      await this.note(`pin:${key}`)
+      throw new HttpError(403, 'wrong_pin')
+    }
+    if (await this.staffPinClashes(s.branchId, next)) await this.rejectClash([limitKey, `pin:${key}`])
+    await this.db.batch([
+      this.db.prepare('INSERT OR REPLACE INTO secrets (key, hash) VALUES (?, ?)').bind(key, await hashPin(next)),
+      // Diğer cihazlardaki oturumları kapanır, bu cihaz açık kalır
+      this.db.prepare('DELETE FROM sessions WHERE staff_id = ? AND token != ?').bind(s.staffId, s.token),
+    ])
+    return { ok: true }
   }
 
   async logout() {
@@ -442,11 +508,22 @@ class Api {
           if (r.kind !== 'staff') throw new HttpError(400, 'bad_pin')
           if (oldData?.[field] && !canSet) throw new HttpError(403, 'forbidden')
           stmts.push(this.db.prepare('DELETE FROM secrets WHERE key = ?').bind(key))
-          if (r.kind === 'staff') delete data[field]
-          else data[field] = ''
+          delete data[field]
+          // Sıfırlanan personelin açık oturumları kapanır; bir sonraki girişte yeni PIN belirler
+          stmts.push(this.db.prepare('DELETE FROM sessions WHERE staff_id = ?').bind(r.id))
         } else {
           if (!canSet) throw new HttpError(403, 'forbidden')
           if (!validPin(v)) throw new HttpError(400, 'bad_pin')
+          // Personel PIN'i ile yönetici/sahip PIN'i aynı olamaz (iki yönde de)
+          const limitKeys: [string, string] = [`pinset:${key}:${this.ip()}`, `pinset:${key}`]
+          await this.checkLimit(limitKeys)
+          const clash =
+            r.kind === 'staff'
+              ? await this.staffPinClashes(branchId, v as string)
+              : r.kind === 'branch'
+                ? await this.managerPinClashes(r.id, v as string)
+                : await this.ownerPinClashes(v as string)
+          if (clash) await this.rejectClash(limitKeys)
           stmts.push(this.db.prepare('INSERT OR REPLACE INTO secrets (key, hash) VALUES (?, ?)').bind(key, await hashPin(v)))
           data[field] = SECRET_MARK
           // PIN değişince o kişinin diğer oturumları kapanır

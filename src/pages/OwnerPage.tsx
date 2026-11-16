@@ -5,7 +5,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { addBranch, monthlyFee, updateBusiness } from '../core/data/actions'
-import { loginError, loginOwner, logout } from '../core/data/auth'
+import { loginError, loginOwner, logout, ownerPinClashes } from '../core/data/auth'
 import { useDb } from '../core/data/demoStore'
 import { isDemo } from '../core/data/mode'
 import { disconnect, onAuthLost, onError, useConnection, useIndex } from '../core/data/remote'
@@ -68,7 +68,7 @@ export function OwnerPage() {
       }),
     [],
   )
-  useEffect(() => onError((code) => alert(code === 'network' ? t('common.network') : t('common.saveError'))), [])
+  useEffect(() => onError((code) => alert(code === 'network' ? t('common.network') : code === 'pin_taken' ? t('common.pinTaken') : t('common.saveError'))), [])
   return tok ? <OwnerPanel token={tok} setSession={setSession} /> : <OwnerLogin onLogin={setSession} />
 }
 
@@ -198,7 +198,8 @@ function OwnerPanel({ token, setSession }: { token: string; setSession: (v: stri
             <label htmlFor="onp">{t('owner.newPin')}</label>
             <input id="onp" type="password" inputMode="numeric" maxLength={8} value={owner.pin} onChange={(e) => setOwner({ ...owner, pin: e.target.value })} />
             <button className="btn2" style={{ marginTop: 10 }} onClick={() => {
-              if (owner.pin.length < 4) return alert(t('staff.pinTooShort'))
+              if (!/^\d{4,8}$/.test(owner.pin)) return alert(t('staff.pinTooShort'))
+              if (isDemo && ownerPinClashes(db, owner.pin)) return alert(t('mgr.pinTakenByStaff'))
               updateBusiness({ ownerPin: owner.pin })
               setOwner({ ...owner, pin: '' })
               setMsg(t('mgr.pinChanged'))

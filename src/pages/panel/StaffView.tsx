@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { deleteAppointment, hasPackage, recordWalkIn } from '../../core/data/actions'
-import { loginError, loginStaff } from '../../core/data/auth'
+import { changeStaffPin, loginError, loginStaff } from '../../core/data/auth'
 import { periodTotals } from '../../core/reports'
 import { addDays, monthStart, toClock } from '../../core/time'
 import type { Id, PaymentMethod } from '../../core/types'
@@ -51,6 +51,7 @@ export function StaffView({ ctx }: { ctx: PanelCtx }) {
           <div>
             {me.role === 'expert' && <MyNumbers ctx={ctx} staffId={me.id} pct={me.commissionPct} />}
             <CustomersCard ctx={ctx} />
+            <ChangePinCard key={me.id} ctx={ctx} staffId={me.id} />
             <button className="btn2 block" onClick={() => { ctx.setSession(null); setPicked(null) }}>
               {t('common.logout')}
             </button>
@@ -83,7 +84,49 @@ function PinCard({ ctx, staffId, onDone }: { ctx: PanelCtx; staffId: Id; onDone:
       <label htmlFor="spin">{t('staff.pinLabel')}</label>
       <input id="spin" type="password" inputMode="numeric" maxLength={8} autoComplete="off" value={pin} onChange={(e) => setPin(e.target.value)} autoFocus />
       <button className="go" disabled={busy}>{t('common.enter')}</button>
+      {p.pin && <p className="mute small">{t('staff.forgotPin')}</p>}
     </form>
+  )
+}
+
+/** Girişli personelin kendi PIN'ini değiştirmesi */
+function ChangePinCard({ ctx, staffId }: { ctx: PanelCtx; staffId: Id }) {
+  const [f, setF] = useState({ current: '', next: '', again: '' })
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+  const token = ctx.session?.kind === 'staff' ? ctx.session.token : undefined
+  const go = async () => {
+    if (busy) return
+    setMsg('')
+    if (!/^\d{4,8}$/.test(f.next)) return alert(t('staff.pinTooShort'))
+    if (f.next !== f.again) return alert(t('staff.pinMismatch'))
+    setBusy(true)
+    const r = await changeStaffPin(ctx.branch, staffId, token, f.current, f.next)
+    setBusy(false)
+    if (!r.ok) return alert(loginError(r.reason))
+    setF({ current: '', next: '', again: '' })
+    setMsg(t('staff.pinChanged'))
+  }
+  const input = (k: keyof typeof f, label: string) => (
+    <>
+      <label htmlFor={'cp-' + k}>{label}</label>
+      <input id={'cp-' + k} type="password" inputMode="numeric" maxLength={8} autoComplete="off"
+        value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} />
+    </>
+  )
+  return (
+    <div className="card">
+      <details>
+        <summary>{t('staff.changePin')}</summary>
+        <form onSubmit={(e) => { e.preventDefault(); go() }}>
+          {msg && <p className="ok" role="status">{msg}</p>}
+          {input('current', t('staff.currentPin'))}
+          {input('next', t('staff.newPin'))}
+          {input('again', t('staff.newPinAgain'))}
+          <button className="btn2" style={{ marginTop: 10 }} disabled={busy}>{t('staff.changePin')}</button>
+        </form>
+      </details>
+    </div>
   )
 }
 

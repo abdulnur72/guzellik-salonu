@@ -3,7 +3,7 @@ import {
   addExpense, addService, addStaff, removeExpense, removeService, removeStaff,
   updateBranch, updateBusinessName, updateService, updateStaff,
 } from '../../core/data/actions'
-import { loginError, loginManager } from '../../core/data/auth'
+import { loginError, loginManager, managerPinClashes } from '../../core/data/auth'
 import { isDemo } from '../../core/data/mode'
 import { expensesTotal, paymentSplit, periodTotals } from '../../core/reports'
 import { addDays, monthStart, shortDate } from '../../core/time'
@@ -232,7 +232,11 @@ function StaffCard({ ctx }: { ctx: PanelCtx }) {
             </span>
             <span className="actions end">
               <PhotoButton ctx={ctx} staffId={p.id} label={t('common.photo')} />
-              {p.pin && <button className="btn2" onClick={() => updateStaff(b, p.id, { pin: '' })}>{t('mgr.resetPin')}</button>}
+              {p.pin && (
+                <button className="btn2" onClick={() => confirm(t('mgr.resetPinConfirm', { ad: p.name })) && updateStaff(b, p.id, { pin: '' })}>
+                  {t('mgr.resetPin')}
+                </button>
+              )}
               <button className="btn2" onClick={() => confirm(t('mgr.removeStaffConfirm', { ad: p.name })) && removeStaff(b, p.id)}>{t('common.delete')}</button>
             </span>
           </li>
@@ -343,7 +347,9 @@ function SettingsCard({ ctx }: { ctx: PanelCtx }) {
         <label htmlFor="np">{t('mgr.newPin')}</label>
         <input id="np" type="password" inputMode="numeric" maxLength={8} value={pin} onChange={(e) => setPin(e.target.value)} />
         <button className="btn2" style={{ marginTop: 10 }} onClick={() => {
-          if (pin.length < 4) return alert(t('staff.pinTooShort'))
+          if (!/^\d{4,8}$/.test(pin)) return alert(t('staff.pinTooShort'))
+          // Gerçek modda sunucu da denetler (personel PIN'leri burada görünmez)
+          if (isDemo && managerPinClashes(ctx.db, br.id, pin)) return alert(t('mgr.pinTakenByStaff'))
           updateBranch(br.id, { managerPin: pin })
           setPin(''); setMsg(t('mgr.pinChanged'))
         }}>{t('mgr.changePin')}</button>
