@@ -111,48 +111,74 @@ summary { cursor: pointer; font-weight: 700 }
 }
 .filebtn { cursor: pointer; margin: 0; font-size: 14px; color: var(--ink) }
 
-/* ---- Uygulama görünümü: büyük yazı, telefonda uygulama gibi ---- */
-html { -webkit-text-size-adjust: 100%; text-size-adjust: 100% }
-body { font-size: 17px; line-height: 1.55; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none; min-height: 100dvh }
-.wrap { padding: 18px 16px calc(40px + env(safe-area-inset-bottom, 0px)) }
-h1 { font-size: 26px }
-.sub { font-size: 16px }
-.chip { font-size: 14px; padding: 3px 12px }
-.logo { width: 64px; height: 64px; border-radius: 16px }
-select, input, textarea { font-size: 17px; padding: 13px 14px; border-radius: 12px; min-height: 50px }
-td input, input.price { font-size: 16px; min-height: 44px }
-label { font-size: 15px; margin: 16px 0 8px }
-label.check { font-size: 16px }
-label.check input { min-height: 0; width: 22px; height: 22px }
-/* Sekmeler: üstte, kaydırınca ekranın tepesinde kalır */
-.tabs {
-  position: sticky; top: 0; z-index: 20; margin: 0 -16px 18px; border-radius: 0; gap: 4px;
-  padding: calc(8px + env(safe-area-inset-top, 0px)) 10px 8px; background: var(--bg); box-shadow: 0 1px 0 var(--line);
+/* ---- Uygulama görünümü: büyük yazı, tam ekran, altta ikonlu sekme çubuğu ---- */
+:root { --bar: 76px }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; background: var(--bg) }
+html, body { min-height: 100% }
+body {
+  font-size: 19px; line-height: 1.5; -webkit-tap-highlight-color: transparent; overscroll-behavior-y: none;
+  min-height: 100vh; min-height: 100dvh; padding-bottom: 0;
 }
-.tabs button {
-  font-size: clamp(13px, 3.7vw, 17px); font-weight: 700; padding: 12px 2px; border-radius: 12px; background: var(--seg); min-height: 48px;
+#root { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column }
+.wrap { width: 100%; flex: 1 0 auto; padding: 16px 16px 24px }
+/* Alt çubuğu olan sayfalarda içerik çubuğun altında kalmasın */
+.wrap:has(> .tabbar) { padding-bottom: calc(var(--bar) + 24px + env(safe-area-inset-bottom, 0px)) }
+.wrap.narrow:not(:has(> .tabbar)) { padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px)) }
+.hd { margin-bottom: 18px }
+h1 { font-size: 28px; line-height: 1.15 }
+.sub { font-size: 18px; margin-top: 4px }
+.chip { font-size: 15px; padding: 4px 12px }
+.logo { width: 68px; height: 68px; border-radius: 18px }
+.orn { margin-top: 12px }
+select, input, textarea { font-size: 19px; padding: 14px 16px; border-radius: 14px; min-height: 56px }
+td input, input.price { font-size: 18px; min-height: 48px }
+label { font-size: 17px; margin: 18px 0 8px }
+label.check { font-size: 17px }
+label.check input { min-height: 0; width: 24px; height: 24px }
+.card { border-radius: 18px; padding: 20px 18px; margin-bottom: 16px }
+.card h2 { font-size: 23px; line-height: 1.25; margin: 0 0 10px }
+.go { font-size: 20px; padding: 18px; border-radius: 16px; min-height: 62px }
+.btn2 { font-size: 18px; padding: 12px 18px; border-radius: 14px; min-height: 52px }
+.stats { gap: 8px }
+.stat { border-radius: 16px; padding: 14px 10px }
+.stat span { font-size: 15px }
+.stat b { font-size: clamp(19px, 5.6vw, 28px) }
+.list li { font-size: 18px; padding: 14px 0 }
+table { font-size: 18px }
+th { font-size: 15px }
+.strip { font-size: 17px; padding: 14px 16px; border-radius: 14px }
+.small { font-size: 16px }
+.sq { font-size: 30px }
+.pk { font-size: 17px; border-radius: 16px }
+.pk .n.wrap { font-size: 15px }
+.pick { grid-auto-columns: minmax(84px, 108px) }
+.qk .pk { font-size: 18px; padding: 16px 10px; min-height: 84px }
+.qk .pk span { font-size: 16px }
+.pill { font-size: 17px; padding: 12px 18px; min-height: 50px }
+.slots { gap: 10px }
+.slots button { font-size: 18px; padding: 14px 0; border-radius: 12px; min-height: 54px }
+.filebtn { font-size: 18px }
+summary { font-size: 19px; padding: 4px 0 }
+.linkbox { margin: 0 0 4px; padding: 14px 16px; background: var(--seg); border-radius: 14px; font-weight: 600; color: var(--acc) }
+
+/* Alt sekme çubuğu: ekranın en altında, ikon + yazı, iPhone çizgisine göre boşluklu */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  min-height: calc(var(--bar) + env(safe-area-inset-bottom, 0px));
+  padding: 6px max(6px, env(safe-area-inset-left, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(6px, env(safe-area-inset-right, 0px));
+  background: var(--card); border-top: 1px solid var(--edge); box-shadow: 0 -4px 18px rgba(0, 0, 0, .07);
 }
-.tabs button[aria-pressed="true"] { box-shadow: 0 2px 8px rgba(0, 0, 0, .15) }
-.card { border-radius: 16px; padding: 18px; margin-bottom: 16px }
-.card h2 { font-size: 19px; margin: 0 0 8px }
-.go { font-size: 18px; padding: 16px; border-radius: 14px; min-height: 56px }
-.btn2 { font-size: 16px; padding: 11px 16px; border-radius: 12px; min-height: 46px }
-.stat { border-radius: 14px }
-.stat span { font-size: 14px }
-.stat b { font-size: clamp(17px, 5vw, 24px) }
-.list li { font-size: 16px; padding: 12px 0 }
-table { font-size: 16px }
-th { font-size: 14px }
-.strip { font-size: 15px; padding: 12px 14px; border-radius: 12px }
-.small { font-size: 15px }
-.pk { font-size: 15px; border-radius: 14px }
-.pk .n.wrap { font-size: 14px }
-.qk .pk { font-size: 16px; padding: 14px 10px; min-height: 72px }
-.qk .pk span { font-size: 14px }
-.pill { font-size: 15px; padding: 10px 16px; min-height: 44px }
-.slots button { font-size: 16px; padding: 12px 0; border-radius: 10px; min-height: 48px }
-.filebtn { font-size: 16px }
-.linkbox { margin: 0 0 4px; padding: 12px 14px; background: var(--seg); border-radius: 12px; font-weight: 600; color: var(--acc) }
+.tabbar button {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 0;
+  border: 0; background: transparent; color: var(--mute); font: inherit; font-weight: 700;
+  font-size: clamp(12px, 3.3vw, 15px); padding: 6px 2px; border-radius: 14px; cursor: pointer;
+}
+.tabbar button span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.tabbar button svg { flex: none; padding: 3px 14px; width: 58px; height: 34px; border-radius: 99px; box-sizing: border-box }
+.tabbar button[aria-pressed="true"] { color: var(--acc) }
+.tabbar button[aria-pressed="true"] svg { background: var(--seg); stroke-width: 2.3 }
+.tabbar button:active svg { background: var(--seg) }
 @media (min-width: 760px) {
-  .tabs { margin: 0 0 18px; border-radius: 14px; max-width: 720px }
+  .tabbar { left: 50%; right: auto; transform: translateX(-50%); width: min(720px, 100%); bottom: 12px; border: 1px solid var(--edge); border-radius: 22px; min-height: var(--bar); padding-bottom: 6px }
 }
