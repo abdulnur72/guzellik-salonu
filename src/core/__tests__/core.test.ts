@@ -68,6 +68,9 @@ describe('ciro', () => {
     }
     expect(periodTotals(data, '2026-11-01', '2026-11-30')).toEqual({ count: 2, revenue: 1400, staffShare: 600 })
     expect(periodTotals(data, '2026-11-01', '2026-11-30', 'e').staffShare).toBe(200)
+    // Eski kayıtta oran metin ya da boş olabilir: yine hesaplanır, NaN olmaz
+    const odd = { ...data, staff: [{ ...staff[0], commissionPct: '40' as unknown as number }, { ...staff[1], commissionPct: undefined as unknown as number }] }
+    expect(periodTotals(odd, '2026-11-01', '2026-11-30').staffShare).toBe(400)
   })
 })
 

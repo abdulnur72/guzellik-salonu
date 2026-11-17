@@ -8,6 +8,12 @@ export interface PeriodTotals {
   staffShare: number
 }
 
+/** Prim oranı 0-100 arası sayı (eski/bozuk kayıtta metin ya da boş gelebilir) */
+export function commissionOf(v: unknown): number {
+  const n = typeof v === 'number' ? v : Number(String(v ?? '').replace(',', '.'))
+  return Number.isFinite(n) ? Math.min(100, Math.max(0, n)) : 0
+}
+
 /** Ciroya yalnızca "Geldi" işaretlenen randevular girer. */
 export function periodTotals(
   data: Pick<BranchData, 'appointments' | 'staff'>,
@@ -15,15 +21,15 @@ export function periodTotals(
   to: IsoDate,
   staffId?: Id,
 ): PeriodTotals {
-  const pct = new Map(data.staff.map((s) => [s.id, s.commissionPct]))
+  const pct = new Map(data.staff.map((s) => [s.id, commissionOf(s.commissionPct)]))
   const rows = data.appointments.filter(
     (a) =>
       a.status === 'done' && a.date >= from && a.date <= to && (!staffId || a.staffId === staffId),
   )
   return {
     count: rows.length,
-    revenue: rows.reduce((t, a) => t + a.price, 0),
-    staffShare: rows.reduce((t, a) => t + (a.price * (pct.get(a.staffId) ?? 0)) / 100, 0),
+    revenue: rows.reduce((t, a) => t + (Number(a.price) || 0), 0),
+    staffShare: rows.reduce((t, a) => t + ((Number(a.price) || 0) * (pct.get(a.staffId) ?? 0)) / 100, 0),
   }
 }
 

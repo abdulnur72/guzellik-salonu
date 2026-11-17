@@ -5,9 +5,9 @@ import {
 } from '../../core/data/actions'
 import { loginError, loginManager, managerPinClashes } from '../../core/data/auth'
 import { isDemo } from '../../core/data/mode'
-import { expensesTotal, paymentSplit, periodTotals } from '../../core/reports'
+import { commissionOf, expensesTotal, paymentSplit, periodTotals } from '../../core/reports'
 import { addDays, monthStart, shortDate } from '../../core/time'
-import type { StaffRole } from '../../core/types'
+import type { Staff, StaffRole } from '../../core/types'
 import { t } from '../../i18n'
 import { Strip } from '../../ui/layout'
 import { Avatar, StatTiles, Table } from '../../ui/pickers'
@@ -26,10 +26,14 @@ export function ManagerView({ ctx }: { ctx: PanelCtx }) {
   ]
   const month = periodTotals(ctx.data, m0, today)
   const split = paymentSplit(ctx.data.appointments.filter((a) => a.date >= m0 && a.date <= today))
+  const noRate = ctx.data.staff.filter((s) => s.active && s.role === 'expert' && !commissionOf(s.commissionPct))
 
   return (
     <>
       <Strip>{t('mgr.strip')}</Strip>
+      {noRate.length > 0 && (
+        <div className="card" role="alert"><b>{t('mgr.noRateWarn', { adlar: noRate.map((s) => s.name).join(', ') })}</b></div>
+      )}
       <StatTiles items={periods.map(([l, a, b]) => [t('mgr.revenueOf', { donem: l }), ctx.fmt(periodTotals(ctx.data, a, b).revenue)])} />
       <div className="grid2">
         <div>
@@ -144,12 +148,31 @@ function ByStaffCard({ ctx }: { ctx: PanelCtx }) {
           const r = periodTotals(ctx.data, m0, today, p.id)
           return [
             p.name, r.count, ctx.fmt(r.revenue), ctx.fmt(r.staffShare), ctx.fmt(r.revenue - r.staffShare),
-            <input key={p.id} type="number" min={0} max={100} defaultValue={p.commissionPct}
-              onChange={(e) => updateStaff(ctx.branch.id, p.id, { commissionPct: Math.min(100, Math.max(0, Number(e.target.value) || 0)) })} />,
+            <RateInput key={p.id} ctx={ctx} person={p} />,
           ]
         })}
       />
     </div>
+  )
+}
+
+/** Prim oranı kutusu: yazarken değil, kutudan çıkınca (ya da Enter'da) kaydeder; boş bırakılırsa eski oran kalır */
+function RateInput({ ctx, person }: { ctx: PanelCtx; person: Staff }) {
+  const saved = commissionOf(person.commissionPct)
+  const [draft, setDraft] = useState<string | null>(null)
+  const save = () => {
+    if (draft === null) return
+    const v = draft.trim()
+    setDraft(null)
+    if (v === '') return
+    const n = commissionOf(v)
+    if (n !== saved) updateStaff(ctx.branch.id, person.id, { commissionPct: n })
+  }
+  return (
+    <input type="number" inputMode="decimal" min={0} max={100} aria-label={t('mgr.rateOf', { ad: person.name })}
+      style={{ width: 72 }} value={draft ?? String(saved)}
+      onChange={(e) => setDraft(e.target.value)} onBlur={save}
+      onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()} />
   )
 }
 
@@ -218,7 +241,7 @@ function LinksCard({ ctx }: { ctx: PanelCtx }) {
 function StaffCard({ ctx }: { ctx: PanelCtx }) {
   const [name, setName] = useState('')
   const [role, setRole] = useState<StaffRole>('expert')
-  const [pct, setPct] = useState('')
+  const [pct, setPct] = useState('40')
   const b = ctx.branch.id
   return (
     <div className="card">
@@ -230,6 +253,9 @@ function StaffCard({ ctx }: { ctx: PanelCtx }) {
               <Avatar person={p} /> {p.name}
               {p.role === 'reception' && <span className="mute"> ({t('mgr.roleReception')})</span>}
             </span>
+            {p.role === 'expert' && (
+              <span className="mute">%{' '}<RateInput ctx={ctx} person={p} /></span>
+            )}
             <span className="actions end">
               <PhotoButton ctx={ctx} staffId={p.id} label={t('common.photo')} />
               {p.pin && (
@@ -249,12 +275,17 @@ function StaffCard({ ctx }: { ctx: PanelCtx }) {
         <option value="expert">{t('mgr.roleExpert')}</option>
         <option value="reception">{t('mgr.roleReception')}</option>
       </select>
-      <label htmlFor="pp">{t('mgr.commission')}</label>
-      <input id="pp" type="number" inputMode="numeric" value={pct} onChange={(e) => setPct(e.target.value)} placeholder="40" />
+      {role === 'expert' && (
+        <>
+          <label htmlFor="pp">{t('mgr.commission')}</label>
+          <input id="pp" type="number" inputMode="decimal" min={0} max={100} value={pct} onChange={(e) => setPct(e.target.value)} />
+        </>
+      )}
       <button className="go" onClick={() => {
         if (!name.trim()) return
-        addStaff(b, { name: name.trim(), role, commissionPct: role === 'reception' ? 0 : Math.min(100, Math.max(0, Number(pct) || 0)) })
-        setName(''); setPct(''); setRole('expert')
+        if (role === 'expert' && pct.trim() === '') return alert(t('mgr.commissionRequired'))
+        addStaff(b, { name: name.trim(), role, commissionPct: role === 'reception' ? 0 : commissionOf(pct) })
+        setName(''); setPct('40'); setRole('expert')
       }}>{t('mgr.addStaff')}</button>
     </div>
   )
