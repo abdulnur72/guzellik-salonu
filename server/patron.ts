@@ -55,7 +55,10 @@ interface Ayar {
   sube: number
   adres: string
   wa: string
+  /** Halı yıkama uygulamasının adresi (halıcı linkleri bundan yapılır) */
+  hali?: string
 }
+const HALI_ADRES = 'https://hali-yikama-c86.pages.dev'
 
 const DAY = 86_400_000
 const SESSION_DAYS = 1
@@ -173,6 +176,7 @@ export async function handlePatron(req: Request, db: D1Database, path: string[])
     else if (a === 'settings') await p.settings(b)
     else if (a === 'restore') await p.restore(b)
     else if (a === 'pin') await p.pin(b)
+    else if (a === 'hali-pin') await p.haliPin(b)
     else throw new PatronError(404, 'not_found')
     return json(await p.state())
   } catch (e) {
@@ -271,7 +275,9 @@ class Patron {
       salonlar: await this.shops(),
       odemeler: pays.map((r) => JSON.parse(r.data) as Payment),
       paketler: await this.kv<Paket[]>('paketler', []),
-      ayar: await this.kv<Ayar>('ayar', { sube: 0, adres: '', wa: '' }),
+      ayar: { hali: HALI_ADRES, ...(await this.kv<Ayar>('ayar', { sube: 0, adres: '', wa: '' })) },
+      // PIN'leri belirlenmiş (kurulmuş) halıcıların kodları
+      haliKurulu: (await this.db.prepare("SELECT key FROM secrets WHERE key LIKE 'hali:yon:%'").all<{ key: string }>()).results.map((r) => r.key.slice(9)),
       subeler: br.map((r) => {
         const d = JSON.parse(r.data) as { name?: string; phone?: string }
         return { kod: r.ix, ad: d.name && d.name !== 'Merkez' ? `${bizName} ${d.name}`.trim() : bizName || d.name || r.ix, tel: str(d.phone, 30) }
@@ -390,6 +396,7 @@ class Patron {
         sube: a.sube === undefined ? old.sube : Math.round(num(a.sube)),
         adres: a.adres === undefined ? old.adres : str(a.adres, 200),
         wa: a.wa === undefined ? old.wa : str(a.wa, 30),
+        hali: a.hali === undefined ? old.hali ?? HALI_ADRES : str(a.hali, 200),
       }
       stmts.push(this.db.prepare("INSERT OR REPLACE INTO plat_kv (k, data) VALUES ('ayar', ?)").bind(JSON.stringify(next)))
     }
@@ -430,7 +437,7 @@ class Patron {
         }
       })
     const a = (o.ayar ?? {}) as Record<string, unknown>
-    const ayar: Ayar = { sube: Math.round(num(a.sube)), adres: str(a.adres, 200), wa: str(a.wa, 30) }
+    const ayar: Ayar = { sube: Math.round(num(a.sube)), adres: str(a.adres, 200), wa: str(a.wa, 30), hali: str(a.hali, 200) || HALI_ADRES }
     await this.db.batch([
       this.db.prepare('DELETE FROM plat_shops'),
       this.db.prepare('DELETE FROM plat_payments'),
@@ -439,6 +446,12 @@ class Patron {
       this.db.prepare("INSERT OR REPLACE INTO plat_kv (k, data) VALUES ('ayar', ?)").bind(JSON.stringify(ayar)),
       this.db.prepare("INSERT OR REPLACE INTO plat_kv (k, data) VALUES ('paketler', ?)").bind(JSON.stringify(cleanPaketler(o.paketler as unknown[]))),
     ])
+  }
+
+  async haliPin(b: Record<string, unknown>) {
+    const s = await this.shop(b.id)
+    if (s.sektor !== 'Halı Yıkama') throw new PatronError(400, 'not_hali')
+    await setHaliPins(this.db, s, b.yon, b.per)
   }
 
   async pin(b: Record<string, unknown>) {
@@ -450,6 +463,21 @@ class Patron {
       this.db.prepare("DELETE FROM sessions WHERE role = 'platform' AND token != ?").bind(this.token()),
     ])
   }
+}
+
+// --- Halı yıkama ---
+// Halıcının yönetici ve personel PIN'ini belirler (ilk kurulum ya da unutulunca).
+// Halıcı kaydı yoksa varsayılan fiyatlarla açılır; PIN'ler birbirinden farklı olmalı.
+export async function setHaliPins(db: D1Database, s: Shop, yon: unknown, per: unknown) {
+  if (typeof yon !== 'string' || typeof per !== 'string' || !/^\d{4,8}$/.test(yon) || !/^\d{4,8}$/.test(per)) throw new PatronError(400, 'bad_pin')
+  if (yon === per) throw new PatronError(400, 'same_pin')
+  await db.batch([
+    db.prepare('INSERT OR IGNORE INTO hali_shops (kod, data) VALUES (?, ?)').bind(s.kod, JSON.stringify({ ad: s.ad, wa: s.tel, adres: '' })),
+    db.prepare('INSERT OR REPLACE INTO secrets (key, hash) VALUES (?, ?)').bind(`hali:yon:${s.kod}`, await hashPin(yon)),
+    db.prepare('INSERT OR REPLACE INTO secrets (key, hash) VALUES (?, ?)').bind(`hali:per:${s.kod}`, await hashPin(per)),
+    // Eski PIN'le açılmış oturumlar kapanır
+    db.prepare("DELETE FROM sessions WHERE branch_id = ? AND role IN ('hali_yon', 'hali_per')").bind(s.kod),
+  ])
 }
 
 function cleanPaketler(list: unknown[]): Paket[] {

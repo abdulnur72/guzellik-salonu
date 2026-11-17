@@ -64,4 +64,6 @@ npm run build && node scripts/build-worker.mjs
 # dist-worker/_worker.js dosyası Pages API'sine (deployments, manifest={}) gönderilir
 ```
 
+Halı yıkama uygulaması `hali-yikama/` klasöründe (ayrı depoya taşınacak), aynı veritabanını kullanır: https://hali-yikama-c86.pages.dev
+
 Sahip paneli PIN'i: `node scripts/patron-pin.mjs <PIN> > pin.sql` ve `wrangler d1 execute ... --remote --file pin.sql`.
