@@ -31,3 +31,21 @@ test.skipIf(!PW || !existsSync(PW))('sahip paneli halıcı ekler, PIN verir, dur
   await call(patron, '/api/patron/pay', { id, tutar: 500, ay: 1, y: 'Havale' }, t)
   expect((await call(hali, '/api/r/deneme-hali/info')).s).toBe(200)
 })
+
+test.skipIf(!PW || !existsSync(PW))('sahip PIN sıfırlama: yalnızca onaylanınca ve yalnızca isteyen telefondan', async () => {
+  const patron = (await import(PW)).default
+  const env = { DB: makeDB() }
+  env.DB.raw.query("INSERT INTO secrets (key, hash) VALUES ('platform', ?)").run(await hashPin('111111'))
+  const call = async (path, body) => { const r = await patron.fetch(new Request('https://x' + path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }), env); return { s: r.status, d: await r.json() } }
+  const sec = 'ab'.repeat(32)
+  const { kod } = (await call('/api/patron/reset-request', { secret: sec })).d
+  expect(kod).toMatch(/^[A-Z2-9]{6}$/)
+  expect((await call('/api/patron/reset-done', { secret: sec, pin: '222222' })).d.error).toBe('reset_waiting')
+  env.DB.raw.query("UPDATE plat_kv SET data = json_set(data, '$.ok', json('true')) WHERE k = 'reset' AND json_extract(data, '$.kod') = ?").run(kod)
+  expect((await call('/api/patron/reset-done', { secret: 'cd'.repeat(32), pin: '333333' })).d.error).toBe('reset_unknown')
+  const ok = await call('/api/patron/reset-done', { secret: sec, pin: '222222' })
+  expect(typeof ok.d.token).toBe('string')
+  expect((await call('/api/patron/login', { pin: '111111' })).d.error).toBe('wrong_pin')
+  expect(typeof (await call('/api/patron/login', { pin: '222222' })).d.token).toBe('string')
+  expect((await call('/api/patron/reset-done', { secret: sec, pin: '444444' })).d.error).toBe('reset_unknown')
+})

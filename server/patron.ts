@@ -162,6 +162,8 @@ export async function handlePatron(req: Request, db: D1Database, path: string[])
     const [a] = path
     if (req.method === 'POST' && a === 'login') return json(await p.login(b))
     if (req.method === 'POST' && a === 'logout') return json(await p.logout())
+    if (req.method === 'POST' && a === 'reset-request') return json(await p.resetRequest(b))
+    if (req.method === 'POST' && a === 'reset-done') return json(await p.resetDone(b))
     await p.auth()
     if (req.method === 'GET' && a === 'state') return json(await p.state())
     if (req.method !== 'POST') throw new PatronError(404, 'not_found')
@@ -228,6 +230,56 @@ class Patron {
     await this.db.batch([
       this.db.prepare("INSERT INTO sessions (token, role, branch_id, staff_id, expires) VALUES (?, 'platform', NULL, NULL, ?)").bind(token, now + SESSION_DAYS * DAY),
       this.db.prepare('DELETE FROM sessions WHERE expires < ?').bind(now),
+    ])
+    return { token }
+  }
+
+  // --- PIN'imi unuttum ---
+  // Telefon rastgele bir gizli anahtar üretir ve saklar; sunucu yalnızca özetini tutar ve
+  // telefona kısa bir sıfırlama kodu verir. Kod, uygulamanın kurucusuna (veritabanı erişimi olan)
+  // iletilir ve o veritabanında onaylar. Onaydan sonra yalnızca o gizli anahtarı tutan telefon
+  // yeni PIN'i belirleyebilir; kod tek başına işe yaramaz. 30 dakika geçerlidir.
+  async resetRequest(b: Record<string, unknown>) {
+    const sec = str(b.secret, 128)
+    if (!/^[0-9a-f]{32,128}$/.test(sec)) throw new PatronError(400, 'bad_request')
+    const key = `platform-reset:${this.ip()}`
+    const r = await this.db.prepare('SELECT COUNT(*) AS n FROM attempts WHERE key = ? AND ts > ?').bind(key, Date.now() - 3600_000).first<{ n: number }>()
+    if ((r?.n ?? 0) >= 5) throw new PatronError(429, 'too_many')
+    const abc = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'
+    const rnd = new Uint8Array(6)
+    crypto.getRandomValues(rnd)
+    const kod = [...rnd].map((x) => abc[x % abc.length]).join('')
+    const rec = { h: hex(await crypto.subtle.digest('SHA-256', enc.encode(sec))), kod, exp: Date.now() + 30 * 60_000, ok: false }
+    await this.db.batch([
+      this.db.prepare('INSERT INTO attempts (key, ts) VALUES (?, ?)').bind(key, Date.now()),
+      this.db.prepare("INSERT OR REPLACE INTO plat_kv (k, data) VALUES ('reset', ?)").bind(JSON.stringify(rec)),
+    ])
+    return { kod }
+  }
+
+  async resetDone(b: Record<string, unknown>) {
+    const key = `platform-reset:${this.ip()}`
+    const r = await this.db.prepare('SELECT COUNT(*) AS n FROM attempts WHERE key = ? AND ts > ?').bind(key, Date.now() - 3600_000).first<{ n: number }>()
+    if ((r?.n ?? 0) >= 10) throw new PatronError(429, 'too_many')
+    const row = await this.db.prepare("SELECT data FROM plat_kv WHERE k = 'reset'").first<{ data: string }>()
+    const rec = row ? (JSON.parse(row.data) as { h: string; kod: string; exp: number; ok: boolean }) : null
+    const h = hex(await crypto.subtle.digest('SHA-256', enc.encode(str(b.secret, 128))))
+    if (!rec || rec.h !== h) {
+      await this.db.prepare('INSERT INTO attempts (key, ts) VALUES (?, ?)').bind(key, Date.now()).run()
+      throw new PatronError(403, 'reset_unknown')
+    }
+    if (rec.exp < Date.now()) throw new PatronError(410, 'reset_expired')
+    if (!rec.ok) throw new PatronError(403, 'reset_waiting')
+    const pin = b.pin
+    if (typeof pin !== 'string' || !/^\d{4,8}$/.test(pin)) throw new PatronError(400, 'bad_pin')
+    const token = randomToken()
+    const now = Date.now()
+    await this.db.batch([
+      this.db.prepare("INSERT OR REPLACE INTO secrets (key, hash) VALUES ('platform', ?)").bind(await hashPin(pin)),
+      this.db.prepare("DELETE FROM sessions WHERE role = 'platform'"),
+      this.db.prepare("DELETE FROM plat_kv WHERE k = 'reset'"),
+      this.db.prepare("DELETE FROM attempts WHERE key LIKE 'platform%'"),
+      this.db.prepare("INSERT INTO sessions (token, role, branch_id, staff_id, expires) VALUES (?, 'platform', NULL, NULL, ?)").bind(token, now + SESSION_DAYS * DAY),
     ])
     return { token }
   }

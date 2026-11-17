@@ -111,7 +111,7 @@ const $app=document.getElementById('app'),$tabs=document.getElementById('tabs');
 const val=id=>(document.getElementById(id)||{value:''}).value.trim();
 
 // --- Sunucu ---
-const ERRS={same_pin:'Yönetici ve personel PIN’i aynı olamaz.',not_hali:'Bu dükkân halı yıkama değil.',wrong_pin:'PIN yanlış.',too_many:'Çok fazla yanlış deneme. 15 dakika sonra tekrar dene.',kod_taken:'Bu link kodu başka bir dükkânda var. Başka bir kod yaz.',no_name:'Dükkân adını yaz.',bad_pin:'PIN 4-8 haneli rakam olmalı.',bad_backup:'Yedek metni okunamadı. Tamamını yapıştırdığından emin ol.',network:'İnternet yok gibi. Bağlantını kontrol edip tekrar dene.'};
+const ERRS={reset_waiting:'Henüz onaylanmadı. Kodu ilettikten sonra birkaç dakika içinde tekrar dene.',reset_expired:'Sıfırlama kodunun süresi doldu. Yeni kod al.',reset_unknown:'Bu sıfırlama isteği bulunamadı. Yeni kod al.',same_pin:'Yönetici ve personel PIN’i aynı olamaz.',not_hali:'Bu dükkân halı yıkama değil.',wrong_pin:'PIN yanlış.',too_many:'Çok fazla yanlış deneme. 15 dakika sonra tekrar dene.',kod_taken:'Bu link kodu başka bir dükkânda var. Başka bir kod yaz.',no_name:'Dükkân adını yaz.',bad_pin:'PIN 4-8 haneli rakam olmalı.',bad_backup:'Yedek metni okunamadı. Tamamını yapıştırdığından emin ol.',network:'İnternet yok gibi. Bağlantını kontrol edip tekrar dene.'};
 async function call(path,body){
  let r;
  try{r=await fetch('/api/patron/'+path,{method:body===undefined?'GET':'POST',headers:Object.assign(body===undefined?{}:{'content-type':'application/json'},TOKEN?{authorization:'Bearer '+TOKEN}:{}),body:body===undefined?undefined:JSON.stringify(body),cache:'no-store'})}
@@ -186,9 +186,14 @@ function vPak(){return `<div class="card"><h2>PIN’i değiştir</h2><p class="m
  <button class="btn2" data-a="cik" style="width:100%">Çıkış yap</button>`}
 function render(){
  const T=MSG?`<div class="toast ${ERR?'err':''}" role="status">${e(MSG)}</div>`:'';
- if(!S){$tabs.innerHTML='';$app.innerHTML=T+(TOKEN?`<div class="card"><p style="margin-top:0">Bilgiler yüklenemedi.</p><button class="btn2" data-a="yenile">Tekrar dene</button></div>`:`<div class="card"><h2>Sahip girişi</h2><p class="mute" style="margin:0">Bu panel yalnızca sana aittir.</p><label for="pin">PIN (6 rakam)</label><div class="pinrow"><input id="pin" type="password" inputmode="numeric" maxlength="8" autocomplete="current-password" placeholder="••••••"><button class="btn2" data-a="goster" aria-pressed="false">Göster</button></div><button class="go" data-a="gir">Gir</button></div>`);return}
+ if(!S){$tabs.innerHTML='';$app.innerHTML=T+(TOKEN?`<div class="card"><p style="margin-top:0">Bilgiler yüklenemedi.</p><button class="btn2" data-a="yenile">Tekrar dene</button></div>`:`<div class="card"><h2>Sahip girişi</h2><p class="mute" style="margin:0">Bu panel yalnızca sana aittir.</p><label for="pin">PIN (6 rakam)</label><div class="pinrow"><input id="pin" type="password" inputmode="numeric" maxlength="8" autocomplete="current-password" placeholder="••••••"><button class="btn2" data-a="goster" aria-pressed="false">Göster</button></div><button class="go" data-a="gir">Gir</button><button class="btn2" data-a="unut" style="width:100%;margin-top:10px">PIN’imi unuttum</button></div>${resetCard()}`);return}
  $tabs.innerHTML=[['s','Dükkânlar'],['o','Ödemeler'],['p','Paketler']].map(x=>`<button aria-pressed="${tab===x[0]}" data-a="tab" data-t="${x[0]}">${x[1]}</button>`).join('');
  $app.innerHTML=T+(tab==='s'?vSal():tab==='o'?vOde():vPak())}
+// PIN'imi unuttum: gizli anahtar yalnızca bu telefonda durur
+const RK='patron-reset';
+function rget(){try{return JSON.parse(localStorage.getItem(RK)||'null')}catch(x){return null}}
+function rset(v){try{v?localStorage.setItem(RK,JSON.stringify(v)):localStorage.removeItem(RK)}catch(x){}}
+function resetCard(){const r=rget();if(!r)return '';return `<div class="card"><h2>PIN sıfırlama</h2><p class="mute" style="margin:0">Sıfırlama kodun:</p><p style="font-size:30px;font-weight:700;letter-spacing:.12em;margin:6px 0">${e(r.kod)}</p><p class="mute" style="margin:0">Bu kodu Claude’a yaz. Kod tek başına işe yaramaz, PIN yalnızca bu telefondan değiştirilebilir. Onaylanınca yeni PIN’i aşağıya yazıp kaydet. Kod 30 dakika geçerli.</p><label for="rp1">Yeni PIN (4-8 rakam)</label><input id="rp1" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"><label for="rp2">Yeni PIN tekrar</label><input id="rp2" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"><button class="go" data-a="rdone">Yeni PIN’i kaydet</button><button class="btn2" data-a="rvaz" style="width:100%;margin-top:10px">Vazgeç</button></div>`}
 function backup(){return JSON.stringify({ayar:S.ayar,paketler:S.paketler,salonlar:S.salonlar,odemeler:S.odemeler,tarih:S.today})}
 async function act(a,d){
  const key=a+':'+(d.id||''),was=CONF;CONF='';MSG='';ERR=false;
@@ -196,6 +201,9 @@ async function act(a,d){
  const s=S&&S.salonlar.find(x=>x.id===d.id);
  const say=t=>{MSG=t;ERR=true;render()};
  if(a==='gir'){const pin=val('pin');if(!pin)return say('PIN’i yaz.');try{const r=await call('login',{pin});setToken(r.token);S=await call('state')}catch(x){return say(ERRS[x.message]||'Giriş yapılamadı. Tekrar dene.')}}
+ else if(a==='unut'){const b=new Uint8Array(32);crypto.getRandomValues(b);const sec=[...b].map(x=>x.toString(16).padStart(2,'0')).join('');try{const r=await call('reset-request',{secret:sec});rset({secret:sec,kod:r.kod});MSG='Sıfırlama kodun hazır. Aşağıda.'}catch(x){return say(ERRS[x.message]||'Kod alınamadı. Tekrar dene.')}}
+ else if(a==='rvaz'){rset(null)}
+ else if(a==='rdone'){const r=rget();if(!r)return;const n=val('rp1');if(!/^\d{4,8}$/.test(n))return say('PIN 4-8 haneli rakam olmalı.');if(n!==val('rp2'))return say('İki PIN aynı değil. Tekrar yaz.');try{const x=await call('reset-done',{secret:r.secret,pin:n});rset(null);setToken(x.token);S=await call('state');MSG='Yeni PIN kaydedildi, giriş yapıldı.'}catch(x){if(x.message==='reset_expired'||x.message==='reset_unknown')rset(null);return say(ERRS[x.message]||'Kaydedilemedi. Tekrar dene.')}}
  else if(a==='goster'){const i=document.getElementById('pin');if(i){const g=i.type==='password';i.type=g?'text':'password';const b=document.querySelector('[data-a=goster]');b.textContent=g?'Gizle':'Göster';b.setAttribute('aria-pressed',g);i.focus()}return}
  else if(a==='yenile'){await load();return}
  else if(a==='tab'){tab=d.t;EDIT='';PAY='';scrollTo(0,0)}

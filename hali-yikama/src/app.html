@@ -83,6 +83,7 @@ label{display:block;font-size:14px;font-weight:600;color:var(--mute);margin:14px
 </div></header>
 <div class="tabs stick" id="tabs" role="group" aria-label="Bölümler" hidden></div>
 <div id="view"><div class="card empty">Yükleniyor…</div></div>
+<noscript><div class="card">Bu sayfa için tarayıcıda JavaScript açık olmalı.</div></noscript>
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
 <script>
@@ -129,7 +130,10 @@ function paint(html){
 
 async function api(path,body,tok){
  var h={};if(body!==undefined)h['content-type']='application/json';if(tok)h.authorization='Bearer '+tok;
- var r;try{r=await fetch('/api/'+AREA+'/'+KOD+'/'+path,{method:body===undefined?'GET':'POST',headers:h,body:body===undefined?undefined:JSON.stringify(body),cache:'no-store'})}catch(e){return{status:0,d:{error:'network'}}}
+ // Zayıf bağlantıda sonsuza kadar beklemesin: 20 saniyede vazgeç
+ var ac=typeof AbortController!='undefined'?new AbortController():null,to=ac?setTimeout(function(){ac.abort()},20000):0;
+ var r;try{r=await fetch('/api/'+AREA+'/'+KOD+'/'+path,{method:body===undefined?'GET':'POST',headers:h,body:body===undefined?undefined:JSON.stringify(body),cache:'no-store',signal:ac?ac.signal:undefined})}catch(e){clearTimeout(to);return{status:0,d:{error:'network'}}}
+ clearTimeout(to);
  var d={};try{d=await r.json()}catch(e){}
  return{status:r.status,d:d}
 }
@@ -384,6 +388,9 @@ document.addEventListener('click',function(ev){
  if(AREA=='r')cClick(t);else if(AREA=='s')pClick(t);else if(t.id=='git'){var k=$('kod').value.trim().toLowerCase();if(k)location.href='/r/'+encodeURIComponent(k)}});
 document.addEventListener('change',function(ev){var t=ev.target;if(AREA!='s'||!S)return;if(t.id=='ara'){ara=t.value;ciz()}if(t.id=='dur'){dur=t.value;ciz()}});
 document.addEventListener('keydown',function(ev){if(ev.key!='Enter')return;var i=ev.target.id;var m={gpin:'giris',ypin:'ygiris',mno:'msorgu',kod:'git'};if(m[i]&&$(m[i])){ev.preventDefault();$(m[i]).click()}});
+// Beklenmedik bir hata olursa "Yükleniyor"da takılmasın
+function takildi(){var v=$('view');if(v&&/Yükleniyor/.test(v.textContent)&&v.children.length<2)v.innerHTML='<div class="card"><h2>Sayfa açılamadı</h2><div class="sub">İnternet bağlantınızı kontrol edip tekrar deneyin.</div><button class="go" onclick="location.reload()">Tekrar dene</button></div>'}
+window.addEventListener('error',function(){setTimeout(takildi,0)});window.addEventListener('unhandledrejection',function(){setTimeout(takildi,0)});setTimeout(takildi,25000);
 if(AREA=='r'&&KOD)cStart();else if(AREA=='s'&&KOD)pStart();else landing();
 </script>
 </body>
