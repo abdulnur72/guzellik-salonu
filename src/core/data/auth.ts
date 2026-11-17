@@ -7,13 +7,14 @@ import { isDemo } from './mode'
 import { api, ApiError } from './remote'
 import { t } from '../../i18n'
 
-export type PinError = 'wrong_pin' | 'too_many' | 'bad_pin' | 'pin_taken' | 'network'
+export type PinError = 'wrong_pin' | 'too_many' | 'bad_pin' | 'pin_taken' | 'network' | 'locked'
 export type LoginResult = { ok: true; token?: string } | { ok: false; reason: PinError }
 
 const validPin = (pin: string) => /^\d{4,8}$/.test(pin)
 
 function failure(e: unknown): { ok: false; reason: PinError } {
   const code = e instanceof ApiError ? e.code : 'network'
+  if (e instanceof ApiError && e.status === 402) return { ok: false, reason: 'locked' }
   if (code === 'too_many' || code === 'bad_pin' || code === 'wrong_pin' || code === 'pin_taken') return { ok: false, reason: code }
   return { ok: false, reason: e instanceof ApiError && e.status === 403 ? 'wrong_pin' : 'network' }
 }
@@ -107,7 +108,9 @@ export function logout(token: string | undefined) {
 
 /** Giriş hatasının ekranda gösterilecek yazısı */
 export function loginError(reason: PinError) {
-  return reason === 'too_many'
+  return reason === 'locked'
+    ? t('lock.title')
+    : reason === 'too_many'
     ? t('common.tooMany')
     : reason === 'network'
       ? t('common.network')

@@ -184,3 +184,4 @@ summary { font-size: 19px; padding: 4px 0 }
 @media (min-width: 760px) {
   .tabbar { left: 50%; right: auto; transform: translateX(-50%); width: min(720px, 100%); bottom: 12px; border: 1px solid var(--edge); border-radius: 22px; min-height: var(--bar); padding-bottom: 6px }
 }
+.lockcard { border: 2px dashed var(--bad); text-align: center }

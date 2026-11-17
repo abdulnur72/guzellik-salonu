@@ -15,6 +15,7 @@ import { branchOf, KINDS, SECRET_MARK, type Kind, type Row } from '../src/core/d
 import { daySlots, freeStaff, MIN_BLOCK_MIN } from '../src/core/scheduling'
 import { addDays, businessToday, toMinutes, zonedParts } from '../src/core/time'
 import type { Appointment, Branch, Business, Customer, Service, Staff } from '../src/core/types'
+import { handlePatron, lockOfOwner, lockOfSlug, type LockInfo } from './patron'
 
 export interface Env {
   DB: D1Database
@@ -42,8 +43,22 @@ class HttpError extends Error {
   constructor(
     public status: number,
     message: string,
+    public extra?: object,
   ) {
     super(message)
+  }
+}
+
+/** Aboneliği biten ya da durdurulan dükkân: kayıtlar durur, uygulama kapalı */
+const lockedError = (info: LockInfo) => new HttpError(402, 'subscription_ended', info)
+
+/** Sahip paneli tabloları yoksa (eski yerel veritabanı) kilit yok sayılır */
+async function safeLock(f: () => Promise<LockInfo | null>) {
+  try {
+    return await f()
+  } catch (e) {
+    if (String(e).includes('no such table')) return null
+    throw e
   }
 }
 
@@ -65,9 +80,11 @@ export async function handle(req: Request, env: Env): Promise<Response> {
     const p = url.pathname.replace(/^\/api\/?/, '').split('/').filter(Boolean).map(decodeURIComponent)
     const api = new Api(env.DB, req)
     const m = req.method
+    if (p[0] === 'patron') return handlePatron(req, env.DB, p.slice(1))
     if (m === 'GET' && p[0] === 'public' && p.length === 1) return json(await api.publicIndex())
     if (p[0] === 'public' && p[1] === 'b' && p[2]) {
       const slug = p[2]
+      await api.checkSlugLock(slug)
       if (m === 'GET' && p.length === 3) return json(await api.publicBranch(slug))
       if (m === 'GET' && p[3] === 'busy') return json(await api.publicBusy(slug, url.searchParams.get('date') || ''))
       if (m === 'POST' && p[3] === 'book') return json(await api.book(slug, await body(req)))
@@ -81,7 +98,7 @@ export async function handle(req: Request, env: Env): Promise<Response> {
     if (m === 'POST' && p[0] === 'write') return json(await api.write(await body(req)))
     return json({ error: 'not_found' }, 404)
   } catch (e) {
-    if (e instanceof HttpError) return json({ error: e.message }, e.status)
+    if (e instanceof HttpError) return json({ ...e.extra, error: e.message }, e.status)
     console.error(e)
     return json({ error: 'server' }, 500)
   }
@@ -275,6 +292,25 @@ class Api {
       throw new HttpError(429, 'too_many')
   }
 
+  // --- Abonelik kilidi ---
+
+  async checkSlugLock(slug: string) {
+    const l = await safeLock(() => lockOfSlug(this.db, slug))
+    if (l) throw lockedError(l)
+  }
+
+  private async checkSessionLock(role: Role | 'owner', branchId: string | null) {
+    let l: LockInfo | null
+    if (role === 'owner') {
+      const { results } = await this.db.prepare("SELECT ix FROM rows WHERE kind = 'branch' AND deleted = 0").all<{ ix: string }>()
+      l = await safeLock(() => lockOfOwner(this.db, results.map((r) => r.ix)))
+    } else {
+      const br = branchId ? await this.row('branch', branchId) : null
+      l = br ? await safeLock(() => lockOfSlug(this.db, String(br.data!.slug))) : null
+    }
+    if (l) throw lockedError(l)
+  }
+
   // --- Oturum ---
 
   private async session(): Promise<Sess> {
@@ -289,7 +325,7 @@ class Api {
       .prepare('SELECT * FROM sessions WHERE token = ? AND expires > ?')
       .bind(token, Date.now())
       .first<{ role: string; branch_id: string | null; staff_id: string | null }>()
-    if (!s) throw new HttpError(401, 'login')
+    if (!s || s.role === 'platform') throw new HttpError(401, 'login')
     let role = s.role as Role
     if (s.role === 'staff') {
       // Rol ve aktiflik her istekte personel kaydından okunur
@@ -298,6 +334,7 @@ class Api {
       if (!d?.active || d.branchId !== s.branch_id) throw new HttpError(401, 'login')
       role = d.role === 'reception' ? 'reception' : 'expert'
     }
+    await this.checkSessionLock(role, s.branch_id)
     this.sess = { token, role, branchId: s.branch_id, staffId: s.staff_id }
     return this.sess
   }
@@ -316,8 +353,10 @@ class Api {
       secretKey = 'owner'
       sess = { role: 'owner', branchId: null, staffId: null }
       void biz
+      await this.checkSessionLock('owner', null)
     } else {
       const br = await this.branchBySlug(str(b.slug, 80))
+      await this.checkSlugLock(String(br.data!.slug))
       if (b.as === 'manager') {
         key = `manager:${br.id}`
         secretKey = key

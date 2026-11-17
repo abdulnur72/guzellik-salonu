@@ -294,6 +294,12 @@ export const tr = {
   'owner.ownerName': 'Salon sahibi adı',
   'owner.newPin': 'Yeni sahip PIN’i',
   'owner.links': 'Şube linkleri',
+  'lock.title': 'Aboneliğin sona erdi',
+  'lock.info': 'Uygulamayı kullanmaya devam etmek için lütfen ödemeni yap. Kayıtların güvende, ödeme sonrası hemen açılır.',
+  'lock.wa': 'WhatsApp’tan yaz',
+  'lock.waText': 'Merhaba, {ad} aboneliğim hakkında yazıyorum.',
+  'lock.customerTitle': 'Abonelik sona erdi',
+  'lock.customerInfo': 'Bu salonun online randevu sayfası şu an kapalı. Randevu için salonu arayabilirsiniz.',
 } as const
 
 export type MessageKey = keyof typeof tr

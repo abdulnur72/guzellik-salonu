@@ -4,6 +4,7 @@
 
 import { useEffect, useState } from 'react'
 import type { Appointment, DemoDatabase, Id } from '../types'
+import { setLock } from './lock'
 import { isDemo } from './mode'
 import { diffRows, fromRows, rowKey, toRows, type Row } from './rows'
 
@@ -31,7 +32,8 @@ export async function api<T = unknown>(path: string, opts: { body?: unknown; tok
   } catch {
     throw new ApiError(0, 'network')
   }
-  const data = (await res.json().catch(() => ({}))) as { error?: string }
+  const data = (await res.json().catch(() => ({}))) as { error?: string; ad?: string; wa?: string }
+  if (res.status === 402) setLock({ ad: data.ad || '', wa: data.wa || '' })
   if (!res.ok) throw new ApiError(res.status, data.error || 'server')
   return data as T
 }
@@ -65,6 +67,8 @@ function serial<T>(fn: () => Promise<T>): Promise<T> {
 
 function failed(e: unknown) {
   const code = e instanceof ApiError ? e.code : 'server'
+  // Abonelik bitti: kilit ekranı zaten açıldı, ayrıca uyarı gösterme
+  if (e instanceof ApiError && e.status === 402) return
   if (e instanceof ApiError && e.status === 401) {
     token = null
     authLost.forEach((f) => f())
