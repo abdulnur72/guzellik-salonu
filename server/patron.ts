@@ -58,7 +58,7 @@ interface Ayar {
 }
 
 const DAY = 86_400_000
-const SESSION_DAYS = 60
+const SESSION_DAYS = 1
 const MAX_FAILS = 8
 const WINDOW_MS = 15 * 60_000
 const DATE = /^\d{4}-\d{2}-\d{2}$/

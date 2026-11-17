@@ -86,7 +86,8 @@ const fd=d=>String(d||'').split('-').reverse().join('.');
 const slug=t=>String(t||'').toLocaleLowerCase('tr-TR').replace(/ç/g,'c').replace(/ğ/g,'g').replace(/ı/g,'i').replace(/ö/g,'o').replace(/ş/g,'s').replace(/ü/g,'u').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
 const SEK=['Güzellik Salonu','Bayan Kuaför','Berber','Spor Salonu','Halı Yıkama'];
 const TK='patron-token';
-let TOKEN=null;try{TOKEN=localStorage.getItem(TK)}catch(x){}
+// Oturum yalnızca bu açılışta tutulur: uygulama kapanınca ya da 5 dakika arka planda kalınca PIN yeniden sorulur
+let TOKEN=null;try{localStorage.removeItem(TK);TOKEN=sessionStorage.getItem(TK)}catch(x){}
 let S=null; // sunucudaki hal: today, salonlar, odemeler, paketler, ayar, subeler
 let tab='s',F='Hepsi',FS='Hepsi',LK=false,MSG='',ERR=false,CONF='',EDIT='',PAY='',BK='',BUSY=false;
 const today=()=>S.today;
@@ -117,7 +118,7 @@ async function call(path,body){
  if(r.status===401&&path!=='login'){setToken(null);S=null;throw new Error('login')}
  if(!r.ok)throw new Error(d.error||'server');
  return d}
-function setToken(t){TOKEN=t;try{t?localStorage.setItem(TK,t):localStorage.removeItem(TK)}catch(x){}}
+function setToken(t){TOKEN=t;try{t?sessionStorage.setItem(TK,t):sessionStorage.removeItem(TK)}catch(x){}}
 /** Sunucuda bir işlem yap, yeni hali al, ekranı yenile */
 async function run(path,body,ok){
  if(BUSY)return;BUSY=true;
@@ -174,11 +175,11 @@ function vOde(){
  return `<div class="stats"><div class="stat"><span>Bu ay tahsilat</span><b>${TL(ay.reduce((t,o)=>t+o.tutar,0))}</b></div><div class="stat"><span>Toplam tahsilat</span><b>${TL(top)}</b></div><div class="stat"><span>Geciken ödeme</span><b>${TL(borc)}</b></div><div class="stat"><span>Geciken dükkân</span><b>${gec.length}</b></div></div>
  <div class="card ${gec.length?'late':''}"><h2>Geciken ödemeler</h2>${gec.length?gec.map(s=>todoRow(s,true)).join(''):'<p class="mute" style="margin:0">Geciken ödeme yok.</p>'}</div>
  <div class="card"><h2>Ödemeler</h2>${od.length?od.map(o=>`<div class="todo"><div class="row"><b>${e(o.ad)}</b><b>${TL(o.tutar)}</b></div><div class="mute">${fd(o.t)} • ${e(o.y)}${o.ay>1?' • '+o.ay+' ay':''}</div><div class="acts"><button class="btn2 ${cf('geri',o.id)?'warn':''}" data-a="geri" data-id="${e(o.id)}">${cf('geri',o.id)?'Emin misin? Evet, geri al':'Geri al'}</button></div></div>`).join(''):'<p class="mute" style="margin:0">Henüz ödeme yok. Dükkânlar sekmesinde “+1 ay aktif” dediğinde burada görünür.</p>'}<p class="mute" style="margin:10px 0 0">“Geri al” ödemeyi siler. Süre, ödemeden önceki haline döner.</p></div>`}
-function vPak(){return `<div class="card"><h2>Paketler</h2><p class="mute" style="margin:0">Ücreti sen belirlersin. Yazınca kendiliğinden kaydedilir.</p><div class="scroll"><table><tr><th>Paket</th><th>Aylık ₺</th><th>Personel</th></tr>${S.paketler.map(p=>`<tr><td>${e(p.ad)}</td><td><input type="number" inputmode="numeric" value="${p.fiyat}" data-pf="${e(p.id)}" aria-label="${e(p.ad)} aylık fiyat"></td><td><input type="number" inputmode="numeric" value="${p.pers}" data-pp="${e(p.id)}" aria-label="${e(p.ad)} personel sayısı"></td></tr>`).join('')}</table></div></div>
+function vPak(){return `<div class="card"><h2>PIN’i değiştir</h2><p class="mute" style="margin:0">Panele girerken sorulan PIN.</p><label for="np">Yeni PIN (6 rakam önerilir)</label><input id="np" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"><label for="np2">Yeni PIN tekrar</label><input id="np2" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"><button class="go" data-a="pin">PIN’i değiştir</button></div>
+ <div class="card"><h2>Paketler</h2><p class="mute" style="margin:0">Ücreti sen belirlersin. Yazınca kendiliğinden kaydedilir.</p><div class="scroll"><table><tr><th>Paket</th><th>Aylık ₺</th><th>Personel</th></tr>${S.paketler.map(p=>`<tr><td>${e(p.ad)}</td><td><input type="number" inputmode="numeric" value="${p.fiyat}" data-pf="${e(p.id)}" aria-label="${e(p.ad)} aylık fiyat"></td><td><input type="number" inputmode="numeric" value="${p.pers}" data-pp="${e(p.id)}" aria-label="${e(p.ad)} personel sayısı"></td></tr>`).join('')}</table></div></div>
  <div class="card"><h2>Ayarlar</h2><p class="mute" style="margin:0">Yazınca kendiliğinden kaydedilir.</p><label for="ay-sube">Ek şube ücreti (₺/ay)</label><input id="ay-sube" type="number" inputmode="numeric" value="${+S.ayar.sube||0}" data-ay="sube"><label for="ay-wa">Senin WhatsApp numaran (kapanan dükkân sana buradan yazar)</label><input id="ay-wa" type="tel" inputmode="tel" value="${e(S.ayar.wa)}" data-ay="wa" placeholder="05xx xxx xx xx"><label for="ay-adres">Uygulama adresi (linkler bundan yapılır)</label><input id="ay-adres" value="${e(S.ayar.adres)}" data-ay="adres" autocapitalize="none"></div>
  <div class="card"><h2>Telefonun ana ekranına ekle</h2><p class="mute" style="margin:0">Tek dokunuşla açılması için:</p><ol class="steps"><li>Chrome’da bu sayfayı aç.</li><li>Sağ üstteki üç noktaya dokun.</li><li>“Ana ekrana ekle” seçeneğine dokun.</li><li>Adı “Sahip” yap, “Ekle” de.</li></ol><p class="mute" style="margin:8px 0 0">iPhone’da: Safari → Paylaş → Ana Ekrana Ekle.</p></div>
  <div class="card"><h2>Yedek</h2><p class="mute" style="margin:0">Kayıtlar zaten sunucuda güvende. İstersen ayrıca yedek al: kopyalayıp bir yere yapıştır (örn. WhatsApp’ta kendine mesaj). Gerekirse aşağıya yapıştırıp geri yüklersin.</p><div class="acts"><button class="btn2 main" data-a="yed">Yedeği kopyala</button><button class="btn2" data-a="ind">Dosya olarak indir</button></div><label for="bk">Yedek metni</label><textarea id="bk" rows="3" placeholder="Geri yüklemek için yedeği buraya yapıştır">${e(BK)}</textarea><button class="go ${cf('yuk','')?'warn':''}" data-a="yuk" style="margin-top:10px">${cf('yuk','')?'Emin misin? Şimdiki kayıtlar yedektekiyle değişir':'Yedekten yükle'}</button></div>
- <div class="card"><h2>PIN</h2><label for="np">Yeni sahip PIN’i (4-8 rakam)</label><input id="np" type="password" inputmode="numeric" maxlength="8"><button class="go" data-a="pin">PIN’i değiştir</button></div>
  <button class="btn2" data-a="cik" style="width:100%">Çıkış yap</button>`}
 function render(){
  const T=MSG?`<div class="toast ${ERR?'err':''}" role="status">${e(MSG)}</div>`:'';
@@ -215,7 +216,7 @@ async function act(a,d){
  else if(a==='yed'){const t=backup();let p;try{p=navigator.clipboard.writeText(t)}catch(x){p=Promise.reject(x)}p.then(()=>{MSG='Yedek kopyalandı. Şimdi güvenli bir yere yapıştır.';render()}).catch(()=>{BK=t;MSG='Kopyalanamadı. Aşağıdaki metni elle seçip kopyala.';render()});return}
  else if(a==='ind'){const b=new Blob([backup()],{type:'application/json'}),u=URL.createObjectURL(b),x=document.createElement('a');x.href=u;x.download='sahip-yedek-'+S.today+'.json';document.body.appendChild(x);x.click();x.remove();setTimeout(()=>URL.revokeObjectURL(u),5000);MSG='Yedek dosyası indirildi.'}
  else if(a==='yuk'){let o;try{o=JSON.parse(val('bk'));if(!o||!Array.isArray(o.salonlar)||!Array.isArray(o.odemeler)||!Array.isArray(o.paketler))throw 0}catch(x){return say('Yedek metni okunamadı. Tamamını yapıştırdığından emin ol.')}const t=val('bk');if(!ask('Yüklemek için bir daha dokun.'))return;BK=t;await run('restore',{yedek:o},'Yedek yüklendi.');if(!ERR)BK='';render();return}
- else if(a==='pin'){const n=val('np');if(!/^\d{4,8}$/.test(n))return say('PIN 4-8 haneli rakam olmalı.');return run('pin',{pin:n},'PIN değişti.')}
+ else if(a==='pin'){const n=val('np');if(!/^\d{4,8}$/.test(n))return say('PIN 4-8 haneli rakam olmalı.');if(n!==val('np2'))return say('İki PIN aynı değil. Tekrar yaz.');return run('pin',{pin:n},'PIN değişti. Bir dahaki girişte yeni PIN’i kullan.')}
  render()}
 document.addEventListener('click',ev=>{const b=ev.target.closest('button[data-a]');if(b&&!b.disabled)act(b.dataset.a,b.dataset)});
 document.addEventListener('keydown',ev=>{if(ev.key==='Enter'&&ev.target.id==='pin')act('gir',{})});
@@ -226,6 +227,9 @@ document.addEventListener('change',ev=>{const t=ev.target,n=Math.max(0,+t.value|
  else if(t.dataset.note){const s=S.salonlar.find(x=>x.id===t.dataset.note);if(s){s.not=t.value.trim();call('note',{id:s.id,not:s.not}).then(r=>{S=r}).catch(x=>{MSG=ERRS[x.message]||'Not kaydedilemedi.';ERR=true;render()})}}
  else if(t.dataset.ay){S.ayar[t.dataset.ay]=t.dataset.ay==='sube'?n:t.value.trim();pend.ayar=Object.assign(pend.ayar||{},{[t.dataset.ay]:S.ayar[t.dataset.ay]});saveSettings()}
  else if(t.dataset.msg){const s=S.salonlar.find(x=>x.id===t.dataset.msg),a=document.getElementById('ma-'+t.dataset.msg);if(s&&a&&MS[t.value])a.href=wa(s.tel,MS[t.value](s))}});
+// 5 dakikadan uzun arka planda kalırsa PIN yeniden sorulur
+let hiddenAt=0;
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){hiddenAt=Date.now();return}if(S&&hiddenAt&&Date.now()-hiddenAt>5*60e3){call('logout',{}).catch(()=>{});setToken(null);S=null;MSG='';EDIT='';PAY='';render()}hiddenAt=0});
 // Uygulamaya geri dönünce güncel hali çek (başka cihazdan yapılan değişiklikler)
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&S&&!EDIT&&!PAY&&!BUSY&&!(document.activeElement&&/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)))call('state').then(r=>{S=r;render()}).catch(()=>{})});
 load();
