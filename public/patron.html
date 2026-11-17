@@ -28,6 +28,8 @@ h1{font-size:26px;line-height:1.1;margin:0;font-weight:800;letter-spacing:-.01em
 select,input,textarea{font:inherit;font-size:16px;color:var(--ink);background:var(--seg);border:1px solid var(--line);border-radius:8px;padding:11px 12px;width:100%;min-width:0}
 textarea{resize:vertical;min-height:44px}
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.tabs:empty{display:none}
+.pinrow{display:flex;gap:6px}.pinrow input{flex:1;font-size:20px;letter-spacing:.15em}
 .tabs{display:flex;gap:3px;background:var(--seg);border-radius:12px;padding:4px;margin-bottom:16px;position:sticky;top:0;z-index:2}
 .tabs button{flex:1;border:0;background:transparent;color:var(--mute);font:700 15px var(--font);padding:10px;border-radius:9px;cursor:pointer}
 .tabs button[aria-pressed="true"]{background:var(--acc);color:var(--on)}
@@ -180,7 +182,7 @@ function vPak(){return `<div class="card"><h2>Paketler</h2><p class="mute" style
  <button class="btn2" data-a="cik" style="width:100%">Çıkış yap</button>`}
 function render(){
  const T=MSG?`<div class="toast ${ERR?'err':''}" role="status">${e(MSG)}</div>`:'';
- if(!S){$tabs.innerHTML='';$app.innerHTML=T+(TOKEN?`<div class="card"><p style="margin-top:0">Bilgiler yüklenemedi.</p><button class="btn2" data-a="yenile">Tekrar dene</button></div>`:`<div class="card"><h2>Sahip girişi</h2><p class="mute" style="margin:0">Bu panel yalnızca sana aittir.</p><label for="pin">PIN</label><input id="pin" type="password" inputmode="numeric" maxlength="8" autocomplete="current-password"><button class="go" data-a="gir">Gir</button></div>`);return}
+ if(!S){$tabs.innerHTML='';$app.innerHTML=T+(TOKEN?`<div class="card"><p style="margin-top:0">Bilgiler yüklenemedi.</p><button class="btn2" data-a="yenile">Tekrar dene</button></div>`:`<div class="card"><h2>Sahip girişi</h2><p class="mute" style="margin:0">Bu panel yalnızca sana aittir.</p><label for="pin">PIN (6 rakam)</label><div class="pinrow"><input id="pin" type="password" inputmode="numeric" maxlength="8" autocomplete="current-password" placeholder="••••••"><button class="btn2" data-a="goster" aria-pressed="false">Göster</button></div><button class="go" data-a="gir">Gir</button></div>`);return}
  $tabs.innerHTML=[['s','Dükkânlar'],['o','Ödemeler'],['p','Paketler']].map(x=>`<button aria-pressed="${tab===x[0]}" data-a="tab" data-t="${x[0]}">${x[1]}</button>`).join('');
  $app.innerHTML=T+(tab==='s'?vSal():tab==='o'?vOde():vPak())}
 function backup(){return JSON.stringify({ayar:S.ayar,paketler:S.paketler,salonlar:S.salonlar,odemeler:S.odemeler,tarih:S.today})}
@@ -190,6 +192,7 @@ async function act(a,d){
  const s=S&&S.salonlar.find(x=>x.id===d.id);
  const say=t=>{MSG=t;ERR=true;render()};
  if(a==='gir'){const pin=val('pin');if(!pin)return say('PIN’i yaz.');try{const r=await call('login',{pin});setToken(r.token);S=await call('state')}catch(x){return say(ERRS[x.message]||'Giriş yapılamadı. Tekrar dene.')}}
+ else if(a==='goster'){const i=document.getElementById('pin');if(i){const g=i.type==='password';i.type=g?'text':'password';const b=document.querySelector('[data-a=goster]');b.textContent=g?'Gizle':'Göster';b.setAttribute('aria-pressed',g);i.focus()}return}
  else if(a==='yenile'){await load();return}
  else if(a==='tab'){tab=d.t;EDIT='';PAY='';scrollTo(0,0)}
  else if(a==='cik'){call('logout',{}).catch(()=>{});setToken(null);S=null}
