@@ -54,3 +54,14 @@ npx wrangler d1 execute guzellik-salonu --remote --file seed.sql && rm seed.sql
 npx wrangler pages project create guzellik-salonu --production-branch main
 npm run build && npx wrangler pages deploy --branch main
 ```
+
+## Tek dosyalık yayın (asset yüklemesi çalışmazsa)
+
+`wrangler pages deploy` dosya yüklerken hata verirse (ör. vekil sunucu arkasında), bütün uygulama tek `_worker.js` olarak yüklenir:
+
+```bash
+npm run build && node scripts/build-worker.mjs
+# dist-worker/_worker.js dosyası Pages API'sine (deployments, manifest={}) gönderilir
+```
+
+Sahip paneli PIN'i: `node scripts/patron-pin.mjs <PIN> > pin.sql` ve `wrangler d1 execute ... --remote --file pin.sql`.

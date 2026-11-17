@@ -6,3 +6,5 @@ dist
 .wrangler
 seed*.sql
 *.tsbuildinfo
+dist-worker
+.worker-assets.json

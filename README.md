@@ -9,6 +9,7 @@ Güzellik salonları için randevu, personel, ciro ve müşteri takip uygulamas�
 |---|---|---|
 | `/` | Açılış ekranı | Doğrudan sekmeli salon paneli açılır (son açılan ya da tek şube) |
 | `/subeler` | Herkes | Şubeleri ve linklerini listeler |
+| `/patron` | Uygulamayı kiralayan (platform sahibi) | Dükkân abonelikleri: ödeme al/geri al, durdur, geciken ödemeler, paketler, WhatsApp mesajları, yedek. Süresi biten ya da durdurulan dükkânın `/r/` ve `/s/` linkleri "abonelik sona erdi" ekranı gösterir (kayıtlar silinmez) |
 | `/sahip` | İşletme sahibi | Tüm şubelerin bu ayki cirosu, gideri, net kârı; şube ekleme; abonelik ücreti; istediği şubeye yönetici olarak geçiş |
 | `/s/<şube>` | Personel, resepsiyon, yönetici | Aynı linkten girilir, kim olduğu PIN ile belirlenir |
 | `/r/<şube>` | Müşteri | Yalnızca randevu sayfası; personel/yönetici ekranları hiç görünmez |
