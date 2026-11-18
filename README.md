@@ -86,6 +86,6 @@ Para birimi, saat dilimi, dil ve ülke her işletmenin ayarıdır (varsayılan T
 2. ✅ Ortak veritabanı ve sunucu (Cloudflare Pages + D1): PIN'le giriş, ortak kayıtlar, online randevu
 3. Cloudflare hesabını açıp yayına almak (KURULUM.md)
 4. ✅ Prototipten kalanlar: İşletme (sahip) paneli ve abonelik ücreti, seanslı paketler, stok, oda/cihaz listesi, fotoğraflar, geçen ay görünümü (yedek indirme veritabanına geçince gereksiz)
-5. Pilot salon (2-3 hafta), sonra spor salonu paketi
+5. Pilot salon (2-3 hafta)
 
-Diğer uygulamalar aynı veritabanını ve sahip panelini kullanır: Berberim (`berber/`, https://berberim.pages.dev), Kuaförüm (`kuafor/`, https://kuaforum.pages.dev), Halı Yıkama (`hali-yikama/`).
+Diğer uygulamalar aynı veritabanını ve sahip panelini kullanır: Berberim (`berber/`, https://berberim.pages.dev), Kuaförüm (`kuafor/`, https://kuaforum.pages.dev), Sporum (`spor/`, https://sporum.pages.dev), Halı Yıkama (`hali-yikama/`).
