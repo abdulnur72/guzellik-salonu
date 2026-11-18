@@ -59,9 +59,12 @@ interface Ayar {
   hali?: string
   /** Berber uygulamasının (Berberim) adresi */
   berber?: string
+  /** Bayan kuaför uygulamasının (Kuaförüm) adresi */
+  kuafor?: string
 }
 const HALI_ADRES = 'https://hali-yikama-c86.pages.dev'
 const BERBER_ADRES = 'https://berberim.pages.dev'
+const KUAFOR_ADRES = 'https://kuaforum.pages.dev'
 
 const DAY = 86_400_000
 const SESSION_DAYS = 1
@@ -183,6 +186,7 @@ export async function handlePatron(req: Request, db: D1Database, path: string[])
     else if (a === 'pin') await p.pin(b)
     else if (a === 'hali-pin') await p.haliPin(b)
     else if (a === 'berber-pin') await p.berberPin(b)
+    else if (a === 'kuafor-pin') await p.kuaforPin(b)
     else throw new PatronError(404, 'not_found')
     return json(await p.state())
   } catch (e) {
@@ -331,11 +335,13 @@ class Patron {
       salonlar: await this.shops(),
       odemeler: pays.map((r) => JSON.parse(r.data) as Payment),
       paketler: await this.kv<Paket[]>('paketler', []),
-      ayar: { hali: HALI_ADRES, berber: BERBER_ADRES, ...(await this.kv<Ayar>('ayar', { sube: 0, adres: '', wa: '' })) },
+      ayar: { hali: HALI_ADRES, berber: BERBER_ADRES, kuafor: KUAFOR_ADRES, ...(await this.kv<Ayar>('ayar', { sube: 0, adres: '', wa: '' })) },
       // PIN'leri belirlenmiş (kurulmuş) halıcıların kodları
       haliKurulu: (await this.db.prepare("SELECT key FROM secrets WHERE key LIKE 'hali:yon:%'").all<{ key: string }>()).results.map((r) => r.key.slice(9)),
       // Yönetici PIN'i belirlenmiş berberlerin kodları
       berberKurulu: (await this.db.prepare("SELECT key FROM secrets WHERE key LIKE 'berber:yon:%'").all<{ key: string }>()).results.map((r) => r.key.slice(11)),
+      // Yönetici PIN'i belirlenmiş bayan kuaförlerin kodları
+      kuaforKurulu: (await this.db.prepare("SELECT key FROM secrets WHERE key LIKE 'kuafor:yon:%'").all<{ key: string }>()).results.map((r) => r.key.slice(11)),
       subeler: br.map((r) => {
         const d = JSON.parse(r.data) as { name?: string; phone?: string }
         return { kod: r.ix, ad: d.name && d.name !== 'Merkez' ? `${bizName} ${d.name}`.trim() : bizName || d.name || r.ix, tel: str(d.phone, 30) }
@@ -456,6 +462,7 @@ class Patron {
         wa: a.wa === undefined ? old.wa : str(a.wa, 30),
         hali: a.hali === undefined ? old.hali ?? HALI_ADRES : str(a.hali, 200),
         berber: a.berber === undefined ? old.berber ?? BERBER_ADRES : str(a.berber, 200),
+        kuafor: a.kuafor === undefined ? old.kuafor ?? KUAFOR_ADRES : str(a.kuafor, 200),
       }
       stmts.push(this.db.prepare("INSERT OR REPLACE INTO plat_kv (k, data) VALUES ('ayar', ?)").bind(JSON.stringify(next)))
     }
@@ -496,7 +503,7 @@ class Patron {
         }
       })
     const a = (o.ayar ?? {}) as Record<string, unknown>
-    const ayar: Ayar = { sube: Math.round(num(a.sube)), adres: str(a.adres, 200), wa: str(a.wa, 30), hali: str(a.hali, 200) || HALI_ADRES, berber: str(a.berber, 200) || BERBER_ADRES }
+    const ayar: Ayar = { sube: Math.round(num(a.sube)), adres: str(a.adres, 200), wa: str(a.wa, 30), hali: str(a.hali, 200) || HALI_ADRES, berber: str(a.berber, 200) || BERBER_ADRES, kuafor: str(a.kuafor, 200) || KUAFOR_ADRES }
     await this.db.batch([
       this.db.prepare('DELETE FROM plat_shops'),
       this.db.prepare('DELETE FROM plat_payments'),
@@ -517,6 +524,12 @@ class Patron {
     const s = await this.shop(b.id)
     if (s.sektor !== 'Berber') throw new PatronError(400, 'not_berber')
     await setBerberPin(this.db, s, b.yon)
+  }
+
+  async kuaforPin(b: Record<string, unknown>) {
+    const s = await this.shop(b.id)
+    if (s.sektor !== 'Bayan Kuaför') throw new PatronError(400, 'not_kuafor')
+    await setKuaforPin(this.db, s, b.yon)
   }
 
   async pin(b: Record<string, unknown>) {
@@ -557,6 +570,21 @@ export async function setBerberPin(db: D1Database, s: Shop, yon: unknown) {
     db.prepare('INSERT OR REPLACE INTO secrets (key, hash) VALUES (?, ?)').bind(`berber:yon:${s.kod}`, await hashPin(yon)),
     // Eski PIN'le açılmış yönetici ve işletme oturumları kapanır
     db.prepare("DELETE FROM sessions WHERE branch_id = ? AND role IN ('berber_yon', 'berber_isl')").bind(s.kod),
+  ])
+}
+
+// --- Bayan kuaför (Kuaförüm) ---
+// Kuaförün yönetici PIN'ini belirler (ilk kurulum ya da unutulunca). Personel PIN'lerini
+// yönetici uygulamadan verir. Yönetici PIN'i hiçbir personelin PIN'iyle aynı olamaz.
+export async function setKuaforPin(db: D1Database, s: Shop, yon: unknown) {
+  if (typeof yon !== 'string' || !/^\d{4,8}$/.test(yon)) throw new PatronError(400, 'bad_pin')
+  const { results } = await db.prepare('SELECT hash FROM secrets WHERE key LIKE ?').bind(`kuafor:per:${s.kod}:%`).all<{ hash: string }>()
+  for (const r of results) if (await checkPin(yon, r.hash)) throw new PatronError(400, 'same_pin')
+  await db.batch([
+    db.prepare('INSERT OR IGNORE INTO kuafor_shops (kod, isl, data) VALUES (?, ?, ?)').bind(s.kod, s.kod, JSON.stringify({ ad: s.ad, wa: s.tel, adres: '' })),
+    db.prepare('INSERT OR REPLACE INTO secrets (key, hash) VALUES (?, ?)').bind(`kuafor:yon:${s.kod}`, await hashPin(yon)),
+    // Eski PIN'le açılmış yönetici ve işletme oturumları kapanır
+    db.prepare("DELETE FROM sessions WHERE branch_id = ? AND role IN ('kuafor_yon', 'kuafor_isl')").bind(s.kod),
   ])
 }
 
