@@ -78,8 +78,8 @@ function OwnerLogin({ onLogin }: { onLogin: (token: string) => void }) {
   const [busy, setBusy] = useState(false)
   return (
     <div className="wrap narrow">
-      <OwnerTabs firstSlug={typeof idx === 'object' ? idx.branches[0]?.slug : undefined} />
       <SalonHeader business={{ name: typeof idx === 'object' ? idx.business.name : '' }} />
+      <OwnerTabs firstSlug={typeof idx === 'object' ? idx.branches[0]?.slug : undefined} />
       <form className="card" onSubmit={async (e) => {
         e.preventDefault()
         if (busy) return
@@ -133,8 +133,8 @@ function OwnerPanel({ token, setSession }: { token: string; setSession: (v: stri
 
   return (
     <div className="wrap">
-      <OwnerTabs firstSlug={first.slug} />
       <SalonHeader business={db.business} branch={first} />
+      <OwnerTabs firstSlug={first.slug} />
       <Strip>{t('owner.strip')}</Strip>
       <StatTiles items={[[t('owner.totalRevenue'), fmt(total.c)], [t('owner.totalNet'), fmt(total.net)], [t('owner.branchCount'), n]]} />
       <div className="grid2">

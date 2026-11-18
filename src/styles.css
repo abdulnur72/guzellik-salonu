@@ -161,12 +161,12 @@ th { font-size: 15px }
 summary { font-size: 19px; padding: 4px 0 }
 .linkbox { margin: 0 0 4px; padding: 14px 16px; background: var(--seg); border-radius: 14px; font-weight: 600; color: var(--acc) }
 
-/* Üst sekme çubuğu: sayfanın en üstünde, kaydırınca ekranın tepesinde kalır, ikon + yazı */
+/* Sekme çubuğu: logo ve adın hemen altında, kaydırınca ekranın tepesinde kalır, ikon + yazı */
 .tabbar {
   position: sticky; top: 0; z-index: 30;
   display: grid; grid-template-columns: repeat(5, 1fr);
   min-height: var(--bar);
-  margin: -16px -16px 18px;
+  margin: 0 -16px 18px;
   padding: max(6px, env(safe-area-inset-top, 0px)) max(6px, env(safe-area-inset-right, 0px)) 6px max(6px, env(safe-area-inset-left, 0px));
   background: var(--card); border-bottom: 1px solid var(--edge); box-shadow: 0 4px 18px rgba(0, 0, 0, .07);
 }

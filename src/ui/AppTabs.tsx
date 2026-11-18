@@ -67,7 +67,7 @@ function TabIcon({ tab }: { tab: AppTab }) {
   )
 }
 
-/** Sayfanın en üstündeki ikonlu sekme çubuğu; kaydırınca ekranın tepesinde kalır. */
+/** Salon logosu ve adının hemen altındaki ikonlu sekme çubuğu; kaydırınca ekranın tepesinde kalır. */
 export function AppTabs({ active, onPick }: { active: AppTab; onPick: (tab: AppTab) => void }) {
   return (
     <nav className="tabbar" aria-label="Bölümler">
