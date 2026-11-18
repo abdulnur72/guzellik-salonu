@@ -7,12 +7,12 @@ Halıcılar için sipariş, aşama takibi, ödeme ve kâr uygulaması. "Köpük 
 | Link | Kimin için | Ne yapar |
 |---|---|---|
 | `/r/<kod>` | Müşteri | Talep formu, "Halım nerede?" sorgusu (telefon ya da sipariş no), fiyat listesi |
-| `/s/<kod>` | Halıcı | PIN ile giriş. Sekmeler: Personel, Halılar, Müşteri (link + QR), Yönetici |
+| `/s/<kod>` | Halıcı | PIN sormadan açılır (Personel, Halılar, Müşteri: link + QR). Yalnızca **Yönetici** sekmesi yönetici PIN'i ister |
 
 - **6 aşama:** Talep alındı → Halı alındı → Yıkanıyor → Kuruyor → Hazır → Teslim edildi, geri alma var. İki telefon aynı anda basarsa ikincisi reddedilir.
 - **Fiyat:** halı türüne göre TL/m²; ölçü düzeltme; kapora/kısmi ödeme (nakit, havale, kart).
 - **Personel:** sipariş açar, aşama ilerletir, ölçü ve ödeme girer, ad/telefon düzenler. Ciro, gider, kâr ve borç listesini görmez; sipariş ve ödeme silemez.
-- **Yönetici:** ciro, gider, kâr, bekleyen ödemeler, masraf ekleme, fiyatlar, işletme bilgileri, PIN'ler (yönetici ve personel PIN'i aynı olamaz).
+- **Yönetici:** (yalnızca yönetici PIN'iyle) ciro, gider, kâr, bekleyen ödemeler, masraf ekleme, fiyatlar, işletme bilgileri, PIN'ler (yönetici ve personel PIN'i aynı olamaz).
 - **Müşteri sorgusu** yalnızca aşama ve tutarı gösterir; ad ve adres göstermez. Talep ve sorgu sayısı sınırlı.
 
 ## Altyapı

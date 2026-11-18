@@ -1,7 +1,7 @@
 // Halı yıkama uygulamasının sunucusu (Cloudflare Pages, tek _worker.js).
 //
 //   /r/<kod>   müşteri sayfası: talep formu ve "Halım nerede?" sorgusu
-//   /s/<kod>   halıcı paneli: Personel, Halılar, Müşteri, Yönetici (PIN ile)
+//   /s/<kod>   halıcı paneli: Personel, Halılar, Müşteri açık; Yönetici PIN ile
 //   /api/...   aşağıdaki uçlar
 //
 // Kayıtlar güzellik salonuyla ortak D1 veritabanında, hali_* tablolarında durur.
@@ -245,12 +245,12 @@ async function session(st, req) {
 async function panel(req, st, shop, plat, action, ip, url) {
   if (req.method === 'GET' && action === 'info') return { ad: shop.ad }
   if (req.method === 'POST' && action === 'login') return login(st, await readBody(req), ip)
-  const s = await session(st, req)
+  // Panel PIN'siz açılır ve personel yetkisiyle çalışır; yönetici işleri yönetici PIN'iyle açılan oturum ister
+  const s = (await session(st, req)) || { token: '', rol: 'per' }
   if (action === 'logout' && req.method === 'POST') {
-    if (s) await st.db.prepare('DELETE FROM sessions WHERE token = ?').bind(s.token).run()
+    if (s.token) await st.db.prepare('DELETE FROM sessions WHERE token = ?').bind(s.token).run()
     return { ok: true }
   }
-  if (!s) throw new HttpError(401, 'login')
   if (req.method === 'GET' && action === 'state') {
     const v = Number(url.searchParams.get('v') || 0)
     if (v && v === shop.ver) return { same: true }
@@ -455,7 +455,7 @@ async function write(st, shop, action, b, yon, token) {
 }
 
 // --- Sayfalar ---
-const ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#0E6B7E"/><g fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="13" y="14" width="38" height="30" rx="3"/><path d="M32 20l9 9-9 9-9-9z"/><path d="M15 49v4M23 49v4M32 49v4M41 49v4M49 49v4"/></g></svg>`
+const ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#B0122C"/><g fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><rect x="13" y="14" width="38" height="30" rx="3"/><path d="M32 20l9 9-9 9-9-9z"/><path d="M15 49v4M23 49v4M32 49v4M41 49v4M49 49v4"/></g></svg>`
 
 function manifest(area, kod, ad) {
   return JSON.stringify({
@@ -464,8 +464,8 @@ function manifest(area, kod, ad) {
     start_url: `/${area}/${kod}`,
     scope: `/${area}/${kod}`,
     display: 'standalone',
-    background_color: '#F1F8F9',
-    theme_color: '#0E6B7E',
+    background_color: '#FBF3EA',
+    theme_color: '#B0122C',
     icons: [{ src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }],
   })
 }

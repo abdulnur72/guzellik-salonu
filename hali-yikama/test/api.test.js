@@ -59,7 +59,15 @@ test('PIN girişi, roller ve personel kısıtları', async () => {
   expect(yon.rol).toBe('yon')
   // Yönetici sekmesinden personel PIN'i ile yönetici olunmaz
   expect((await J(await req(`/api/s/${KOD}/login`, { pin: '2222', rol: 'yon' }))).d.error).toBe('wrong_pin')
-  expect((await req(`/api/s/${KOD}/state`)).status).toBe(401)
+  // Panel PIN'siz açılır: personel yetkisi, ciro/gider/abonelik yok, yönetici işi yapılamaz
+  const acik = (await J(await req(`/api/s/${KOD}/state`))).d
+  expect(acik.rol).toBe('per')
+  expect(acik.giderler).toBeUndefined()
+  expect(acik.abonelik).toBeUndefined()
+  expect((await J(await req(`/api/s/${KOD}/gider`, { tur: 'Elektrik', tutar: 5 }))).d.error).toBe('yonetici')
+  expect((await J(await req(`/api/s/${KOD}/ayar`, { ad: 'X' }))).d.error).toBe('yonetici')
+  expect((await J(await req(`/api/s/${KOD}/pin`, { kim: 'yon', pin: '5555' }))).d.error).toBe('yonetici')
+  expect((await J(await req(`/api/s/${KOD}/yeni`, { ad: 'Veli', rugs: [{ m2: 2, n: 1, tur: 0 }] }))).s).toBe(200)
   const sp = (await J(await req(`/api/s/${KOD}/state`, undefined, per.token))).d
   expect(sp.rol).toBe('per')
   expect(sp.giderler).toBeUndefined()
@@ -127,8 +135,9 @@ test('yönetici: masraf, fiyatlar, ayarlar, PIN farklılığı', async () => {
   expect((await J(await req(`/api/s/${KOD}/pin`, { kim: 'per', pin: '1111' }, yon.token))).d.error).toBe('same_pin')
   expect((await J(await req(`/api/s/${KOD}/pin`, { kim: 'yon', pin: '2222' }, yon.token))).d.error).toBe('same_pin')
   expect((await J(await req(`/api/s/${KOD}/pin`, { kim: 'per', pin: '3333' }, yon.token))).s).toBe(200)
-  // personel PIN'i değişince personel oturumu kapanır, eski PIN çalışmaz
-  expect((await req(`/api/s/${KOD}/state`, undefined, per.token)).status).toBe(401)
+  // personel PIN'i değişince personel oturumu kapanır (panel yine PIN'siz personel olarak açılır), eski PIN çalışmaz
+  expect((await J(await req(`/api/s/${KOD}/state`, undefined, per.token))).d.rol).toBe('per')
+  expect(await env.DB.raw.query('SELECT COUNT(*) AS n FROM sessions WHERE token = ?').get(per.token)).toEqual({ n: 0 })
   expect((await J(await req(`/api/s/${KOD}/login`, { pin: '2222' }))).d.error).toBe('wrong_pin')
   expect((await login('3333')).rol).toBe('per')
   expect((await req(`/api/s/${KOD}/state`, undefined, yon.token)).status).toBe(200)
