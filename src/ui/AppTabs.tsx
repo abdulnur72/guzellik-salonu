@@ -1,4 +1,4 @@
-// Uygulamanın alt sekme çubuğu: Yönetici, Personel, Randevu, İşletme, Müşteri.
+// Uygulamanın üst sekme çubuğu: Yönetici, Personel, Randevu, İşletme, Müşteri.
 // Salon paneli (/s/:slug) ve sahip paneli (/sahip) aynı sekme çubuğunu kullanır.
 // Müşteri linkinde (/r/:slug) bu çubuk hiç gösterilmez.
 
@@ -67,7 +67,7 @@ function TabIcon({ tab }: { tab: AppTab }) {
   )
 }
 
-/** Ekranın en altında sabit duran, ikonlu sekme çubuğu (telefon uygulaması gibi). */
+/** Sayfanın en üstündeki ikonlu sekme çubuğu; kaydırınca ekranın tepesinde kalır. */
 export function AppTabs({ active, onPick }: { active: AppTab; onPick: (tab: AppTab) => void }) {
   return (
     <nav className="tabbar" aria-label="Bölümler">

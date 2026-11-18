@@ -97,8 +97,8 @@ function Panel({ slug }: { slug: string | undefined }) {
 
   return (
     <div className="wrap">
-      <SalonHeader business={db.business} branch={data.branch} />
       <AppTabs active={tab} onPick={pickTab} />
+      <SalonHeader business={db.business} branch={data.branch} />
       {tab === 'staff' && <StaffView ctx={ctx} />}
       {tab === 'appointments' && <AppointmentsView ctx={ctx} />}
       {tab === 'manager' && <ManagerView ctx={ctx} />}

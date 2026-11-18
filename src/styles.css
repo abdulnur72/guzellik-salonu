@@ -121,9 +121,7 @@ body {
 }
 #root { min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column }
 .wrap { width: 100%; flex: 1 0 auto; padding: 16px 16px 24px }
-/* Alt çubuğu olan sayfalarda içerik çubuğun altında kalmasın */
-.wrap:has(> .tabbar) { padding-bottom: calc(var(--bar) + 24px + env(safe-area-inset-bottom, 0px)) }
-.wrap.narrow:not(:has(> .tabbar)) { padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px)) }
+.wrap.narrow, .wrap:has(> .tabbar) { padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px)) }
 .hd { margin-bottom: 18px }
 h1 { font-size: 28px; line-height: 1.15 }
 .sub { font-size: 18px; margin-top: 4px }
@@ -163,13 +161,14 @@ th { font-size: 15px }
 summary { font-size: 19px; padding: 4px 0 }
 .linkbox { margin: 0 0 4px; padding: 14px 16px; background: var(--seg); border-radius: 14px; font-weight: 600; color: var(--acc) }
 
-/* Alt sekme çubuğu: ekranın en altında, ikon + yazı, iPhone çizgisine göre boşluklu */
+/* Üst sekme çubuğu: sayfanın en üstünde, kaydırınca ekranın tepesinde kalır, ikon + yazı */
 .tabbar {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+  position: sticky; top: 0; z-index: 30;
   display: grid; grid-template-columns: repeat(5, 1fr);
-  min-height: calc(var(--bar) + env(safe-area-inset-bottom, 0px));
-  padding: 6px max(6px, env(safe-area-inset-left, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(6px, env(safe-area-inset-right, 0px));
-  background: var(--card); border-top: 1px solid var(--edge); box-shadow: 0 -4px 18px rgba(0, 0, 0, .07);
+  min-height: var(--bar);
+  margin: -16px -16px 18px;
+  padding: max(6px, env(safe-area-inset-top, 0px)) max(6px, env(safe-area-inset-right, 0px)) 6px max(6px, env(safe-area-inset-left, 0px));
+  background: var(--card); border-bottom: 1px solid var(--edge); box-shadow: 0 4px 18px rgba(0, 0, 0, .07);
 }
 .tabbar button {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 0;
@@ -182,6 +181,6 @@ summary { font-size: 19px; padding: 4px 0 }
 .tabbar button[aria-pressed="true"] svg { background: var(--seg); stroke-width: 2.3 }
 .tabbar button:active svg { background: var(--seg) }
 @media (min-width: 760px) {
-  .tabbar { left: 50%; right: auto; transform: translateX(-50%); width: min(720px, 100%); bottom: 12px; border: 1px solid var(--edge); border-radius: 22px; min-height: var(--bar); padding-bottom: 6px }
+  .tabbar { top: 10px; width: min(720px, 100%); margin: 0 auto 18px; border: 1px solid var(--edge); border-radius: 22px; padding: 6px }
 }
 .lockcard { border: 2px dashed var(--bad); text-align: center }
