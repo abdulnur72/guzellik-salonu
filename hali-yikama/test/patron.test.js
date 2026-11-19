@@ -12,7 +12,7 @@ test.skipIf(!PW || !existsSync(PW))('sahip paneli halıcı ekler, PIN verir, dur
   const call = async (w, path, body, tok) => { const r = await w.fetch(new Request('https://x' + path, { method: body ? 'POST' : 'GET', headers: { 'content-type': 'application/json', ...(tok ? { authorization: 'Bearer ' + tok } : {}) }, body: body ? JSON.stringify(body) : undefined }), env); return { s: r.status, d: await r.json() } }
   const t = (await call(patron, '/api/patron/login', { pin: '654321' })).d.token
   let st = (await call(patron, '/api/patron/add', { ad: 'Deneme Halı', sektor: 'Halı Yıkama', tel: '05320000000', paket: 'p1', kod: 'deneme-hali' }, t)).d
-  expect(st.ayar.hali).toBe('https://hali-yikama-c86.pages.dev')
+  expect(st.ayar.hali).toBe('https://hali-yikama.esnafim.workers.dev')
   const id = st.salonlar.find((s) => s.kod === 'deneme-hali').id
   expect((await call(hali, '/api/r/deneme-hali/info')).d.error).toBe('setup')
   expect((await call(patron, '/api/patron/hali-pin', { id, yon: '1234', per: '1234' }, t)).d.error).toBe('same_pin')

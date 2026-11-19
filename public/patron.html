@@ -102,7 +102,7 @@ const HALI='Halı Yıkama';
 const BERBER='Berber';
 const KUAFOR='Bayan Kuaför';
 const SPOR='Spor Salonu';
-const lnk=(s,t)=>(s.sektor===HALI?String(S.ayar.hali||'https://hali-yikama-c86.pages.dev').replace(/\/+$/,''):s.sektor===BERBER?String(S.ayar.berber||'https://berberim.pages.dev').replace(/\/+$/,''):s.sektor===KUAFOR?String(S.ayar.kuafor||'https://kuaforum.pages.dev').replace(/\/+$/,''):s.sektor===SPOR?String(S.ayar.spor||'https://sporum.pages.dev').replace(/\/+$/,''):adres())+'/'+t+'/'+s.kod;
+const lnk=(s,t)=>(s.sektor===HALI?String(S.ayar.hali||'https://hali-yikama.esnafim.workers.dev').replace(/\/+$/,''):s.sektor===BERBER?String(S.ayar.berber||'https://berberim.pages.dev').replace(/\/+$/,''):s.sektor===KUAFOR?String(S.ayar.kuafor||'https://kuaforum.pages.dev').replace(/\/+$/,''):s.sektor===SPOR?String(S.ayar.spor||'https://sporum.pages.dev').replace(/\/+$/,''):adres())+'/'+t+'/'+s.kod;
 const haliOk=s=>(S.haliKurulu||[]).includes(s.kod);
 const berberOk=s=>(S.berberKurulu||[]).includes(s.kod);
 const kuaforOk=s=>(S.kuaforKurulu||[]).includes(s.kod);

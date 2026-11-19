@@ -64,7 +64,9 @@ interface Ayar {
   /** Spor salonu uygulamasının (Sporum) adresi */
   spor?: string
 }
-const HALI_ADRES = 'https://hali-yikama-c86.pages.dev'
+// Halıcı linklerinin ve QR'ların adresi. Asıl ayar sahip panelinde (Ayarlar → Halı yıkama uygulamasının adresi,
+// veritabanında plat_kv 'ayar'.hali); bu yalnızca ayar boşsa kullanılır. Halı uygulaması da aynı ayarı okur.
+const HALI_ADRES = 'https://hali-yikama.esnafim.workers.dev'
 const BERBER_ADRES = 'https://berberim.pages.dev'
 const KUAFOR_ADRES = 'https://kuaforum.pages.dev'
 const SPOR_ADRES = 'https://sporum.pages.dev'

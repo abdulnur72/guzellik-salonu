@@ -241,3 +241,12 @@ test('QR kodu bağımsız çözücüyle okunuyor (sürüm 1-10)', () => {
   expect(QR.encode('y'.repeat(200)).ver).toBe(10)
   expect(QR.svg('abc')).toContain('<svg')
 })
+
+test('halıcı linklerinin adresi sahip panelindeki tek ayardan gelir', async () => {
+  const st = async () => (await J(await req(`/api/s/${KOD}/state`))).d.adres
+  expect(await st()).toBe('') // ayar yoksa sayfa kendi adresini kullanır
+  env.DB.raw.query("INSERT OR REPLACE INTO plat_kv (k, data) VALUES ('ayar', ?)").run(JSON.stringify({ wa: '0532', hali: 'https://esnaftakip.com/' }))
+  expect(await st()).toBe('https://esnaftakip.com')
+  env.DB.raw.query("INSERT OR REPLACE INTO plat_kv (k, data) VALUES ('ayar', ?)").run(JSON.stringify({ hali: 'javascript:alert(1)' }))
+  expect(await st()).toBe('')
+})

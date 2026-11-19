@@ -4,6 +4,8 @@ Halıcılar için sipariş, aşama takibi, ödeme ve kâr uygulaması. "Köpük 
 
 **Canlı adres:** https://hali-yikama-c86.pages.dev
 
+**Halıcılara verilen adres:** sahip panelindeki tek ayar, **Ayarlar → Halı yıkama uygulamasının adresi** (veritabanında `plat_kv` `ayar.hali`, şu an `https://hali-yikama.esnafim.workers.dev`). Sahip panelinin halıcı linkleri, halıcı panelindeki müşteri linki, WhatsApp mesajı ve QR kodu bu ayardan yapılır. Alan adı alınınca yalnızca bu kutuya yeni adres (ör. `https://esnaftakip.com`) yazılır. Ayar boşsa sayfa kendi açıldığı adresi kullanır.
+
 **Yedek adres (Cloudflare Worker):** https://hali-yikama.esnafim.workers.dev — aynı `dist/_worker.js`, aynı D1 veritabanı (`DB` bağlaması), veriler ortak. pages.dev Türkiye'de engellendiğinde kullanılır.
 
 | Link | Kimin için | Ne yapar |
@@ -34,7 +36,7 @@ bun scripts/dev.js       # yerel deneme: http://localhost:8788/s/kopuklu-hali-yi
 bun install && bun scripts/build.mjs   # dist/_worker.js (sayfa kodu eski tarayıcılar için ES5’e çevrilir)
 ```
 
-Yayın (Cloudflare API, `manifest={}` ile tek dosya):
+Yayın: aynı `dist/_worker.js` **iki yere** yüklenir, Pages (`hali-yikama`) ve Worker (`hali-yikama`, workers.dev). Pages (Cloudflare API, `manifest={}` ile tek dosya):
 
 ```bash
 curl -X POST https://api.cloudflare.com/client/v4/accounts/<hesap>/pages/projects/hali-yikama/deployments \

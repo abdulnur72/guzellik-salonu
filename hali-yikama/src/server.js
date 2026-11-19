@@ -97,9 +97,18 @@ class Store {
     const r = await this.db.prepare('SELECT data FROM plat_shops WHERE kod = ?').bind(this.kod).first()
     return r ? JSON.parse(r.data) : null
   }
-  async patronWa() {
+  async patronAyar() {
     const r = await this.db.prepare("SELECT data FROM plat_kv WHERE k = 'ayar'").first()
-    return r ? str(JSON.parse(r.data).wa, 30) : ''
+    return r ? JSON.parse(r.data) : {}
+  }
+  async patronWa() {
+    return str((await this.patronAyar()).wa, 30)
+  }
+  // Halıcı linklerinin ve QR'ın adresi: sahip panelindeki tek ayar (Ayarlar → Halı yıkama uygulamasının adresi).
+  // Boş ya da geçersizse sayfa kendi açıldığı adresi kullanır.
+  async haliAdres() {
+    const a = str((await this.patronAyar()).hali, 200).replace(/\/+$/, '')
+    return /^https?:\/\/[a-z0-9.-]+(:\d+)?$/i.test(a) ? a : ''
   }
   async shop() {
     const r = await this.db.prepare('SELECT data, next_no, ver FROM hali_shops WHERE kod = ?').bind(this.kod).first()
@@ -309,6 +318,7 @@ async function state(st, shop, plat, rol) {
     v: shop.ver,
     rol,
     today,
+    adres: await st.haliAdres(),
     shop: { ad: shop.ad, wa: shop.wa || '', adres: shop.adres || '', turler: shop.turler },
     orders,
     sabit: { asama: ASAMA, saatler: SAATLER, yontem: YONTEM, gider: GIDER },

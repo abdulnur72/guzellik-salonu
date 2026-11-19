@@ -129,7 +129,7 @@ function steps(a){var s='';for(var i=0;i<=LAST;i++)s+='<i class="'+(i<=a?'on':''
 function store(k,v){try{if(v===undefined)return localStorage.getItem(k);if(v===null)localStorage.removeItem(k);else localStorage.setItem(k,v)}catch(e){return null}}
 function sstore(k,v){try{if(v===undefined)return sessionStorage.getItem(k);if(v===null)sessionStorage.removeItem(k);else sessionStorage.setItem(k,v)}catch(e){return null}}
 function setHead(ad,eyebrow,slogan){$('baslik').textContent=ad||'Halı Yıkama';document.title=ad||'Halı Yıkama';if(eyebrow)$('eyebrow').textContent=eyebrow;if(slogan!==undefined)$('slogan').textContent=slogan}
-function link(t){return location.origin+'/'+t+'/'+KOD}
+function link(t){return ((S&&S.adres)||location.origin)+'/'+t+'/'+KOD}
 function addManifest(){var l=document.createElement('link');l.rel='manifest';l.href='/'+AREA+'/'+KOD+'/app.webmanifest';document.head.appendChild(l)}
 
 // Ekran yeniden çizilince yazılan yazılar kaybolmasın

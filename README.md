@@ -89,3 +89,11 @@ Para birimi, saat dilimi, dil ve ülke her işletmenin ayarıdır (varsayılan T
 5. Pilot salon (2-3 hafta)
 
 Diğer uygulamalar aynı veritabanını ve sahip panelini kullanır: Berberim (`berber/`, https://berberim.pages.dev), Kuaförüm (`kuafor/`, https://kuaforum.pages.dev), Sporum (`spor/`, https://sporum.pages.dev), Halı Yıkama (`hali-yikama/`).
+
+## Yayın adresleri
+
+Aynı `dist-worker/_worker.js` iki yerde yayında, ikisi de aynı D1 veritabanını kullanır:
+- Pages: https://guzellik-salonu.pages.dev (`/patron` dahil)
+- Worker: https://guzellik-salonu.esnafim.workers.dev (Türkiye'de pages.dev engellendiğinde kullanılır)
+
+Worker yüklemesi: `PUT /accounts/<hesap>/workers/scripts/guzellik-salonu`, metadata `{"main_module":"_worker.js","compatibility_date":"2026-10-01","bindings":[{"type":"d1","name":"DB","id":"<database_id>"}]}`. Bir düzeltme yapılınca iki yere de yüklenmeli.
