@@ -29,7 +29,7 @@ Dış bağımlılık yok; [Bun](https://bun.sh) yeter.
 ```bash
 bun test                 # sunucu, yetki, kilit ve QR testleri
 bun scripts/dev.js       # yerel deneme: http://localhost:8788/s/kopuklu-hali-yikama (PIN 1111 / 2222)
-bun scripts/build.mjs    # dist/_worker.js
+bun install bun scripts/build.mjs    # dist/_worker.jsbun scripts/build.mjs    # dist/_worker.js bun scripts/build.mjs    # dist/_worker.js (sayfa kodu eski tarayıcılar için ES5’e çevrilir)
 ```
 
 Yayın (Cloudflare API, `manifest={}` ile tek dosya):

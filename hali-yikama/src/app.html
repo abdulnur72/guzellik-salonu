@@ -10,8 +10,8 @@
 <link rel="icon" href="/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/icon.svg">
 <title>Halı Yıkama</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap">
+<!-- Yazı tipi sayfayı bekletmez: Google'a ulaşılamazsa telefonun kendi yazı tipiyle açılır -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap" media="print" onload="this.media='all'">
 <style>
 :root{--bg:#FBF3EA;--card:#fff;--ink:#2B1216;--mute:#6B4D51;--line:#EEDACB;--acc:#B0122C;--on:#fff;--seg:#F7E7DA;--edge:#E6C2AE;--ok:#0B8577;--bad:#C2410C;--tq:#0E9A94;--tqd:#0A7A75;--gold:#F2B33D;--hd1:#B0122C;--hd2:#7A0C1F;--font:Manrope,system-ui,-apple-system,sans-serif;color-scheme:light}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#170B0E;--card:#24141A;--ink:#FBEFEA;--mute:#C9AEAB;--line:#3D252B;--acc:#FF5A6E;--on:#2A0509;--seg:#2E1A20;--edge:#55343B;--ok:#3FD1C1;--bad:#FF8A4C;--tq:#3FD1C1;--tqd:#10766F;--gold:#F5BE55;--hd1:#9A1028;--hd2:#5C0815;color-scheme:dark}}
@@ -87,6 +87,20 @@ label{display:block;font-size:14px;font-weight:600;color:var(--mute);margin:14px
 <noscript><div class="card">Bu sayfa için tarayıcıda JavaScript açık olmalı.</div></noscript>
 </div>
 <div id="toast" role="status" aria-live="polite"></div>
+<script>
+// Bekçi (eski tarayıcılarda da çalışan yalın kod): asıl kod çalışamazsa ya da sayfa
+// "Yükleniyor"da kalırsa boş/takılı ekran yerine anlaşılır bir mesaj gösterir.
+(function(){
+ function yuklenemedi(){
+  var v=document.getElementById('view');
+  if(!v||!/Yükleniyor/.test(v.textContent)||v.children.length>1)return;
+  v.innerHTML='<div class="card"><h2>Sayfa yüklenemedi</h2><div class="sub">Lütfen tekrar deneyin. Olmazsa linki Chrome ya da Safari’de açın.</div><button class="go" onclick="location.reload()">Tekrar dene</button></div>';
+ }
+ window.onerror=function(){setTimeout(yuklenemedi,0)};
+ if(!window.Promise||!window.fetch||!document.addEventListener){yuklenemedi();return}
+ setTimeout(yuklenemedi,15000);
+})();
+</script>
 <script>
 /*__QR__*/
 </script>
