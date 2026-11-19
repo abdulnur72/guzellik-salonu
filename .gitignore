@@ -8,3 +8,6 @@ seed*.sql
 *.tsbuildinfo
 dist-worker
 .worker-assets.json
+
+# Kökteki proje npm kullanır (package-lock.json); bun test çalıştırınca oluşan kilit dosyası
+/bun.lock
