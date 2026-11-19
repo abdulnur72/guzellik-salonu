@@ -4,6 +4,8 @@ Halıcılar için sipariş, aşama takibi, ödeme ve kâr uygulaması. "Köpük 
 
 **Canlı adres:** https://hali-yikama-c86.pages.dev
 
+**Yedek adres (Cloudflare Worker):** https://hali-yikama.esnafim.workers.dev — aynı `dist/_worker.js`, aynı D1 veritabanı (`DB` bağlaması), veriler ortak. pages.dev Türkiye'de engellendiğinde kullanılır.
+
 | Link | Kimin için | Ne yapar |
 |---|---|---|
 | `/r/<kod>` | Müşteri | Talep formu, "Halım nerede?" sorgusu (telefon ya da sipariş no), fiyat listesi |
