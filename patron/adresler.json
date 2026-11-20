@@ -1,0 +1,18 @@
+{
+  "_aciklama": "Sahip paneli (patron) adres ayarı. Her uygulama esnaflartakip.com altında kendi alt adresinde çalışır. Durumlar: bagli = yayında, baglaniyor = bağlantı adımları sürüyor, planlandi = henüz bağlanmadı; diğerleri sırayla bağlanacak.",
+  "anaAlanAdi": "esnaflartakip.com",
+  "uygulamalar": [
+    {
+      "kod": "hali",
+      "ad": "Halı Yıkama",
+      "adres": "https://hali.esnaflartakip.com",
+      "cloudflareWorker": "hali-yikama",
+      "durum": "baglaniyor"
+    },
+    { "kod": "guzellik", "ad": "Güzellik Salonu", "adres": "https://guzellik.esnaflartakip.com", "durum": "planlandi" },
+    { "kod": "kuafor",   "ad": "Kuaför",          "adres": "https://kuafor.esnaflartakip.com",   "durum": "planlandi" },
+    { "kod": "berber",   "ad": "Berber",          "adres": "https://berber.esnaflartakip.com",   "durum": "planlandi" },
+    { "kod": "spor",     "ad": "Spor Salonu",     "adres": "https://spor.esnaflartakip.com",     "durum": "planlandi" },
+    { "kod": "patron",   "ad": "Sahip Paneli",    "adres": "https://patron.esnaflartakip.com",   "durum": "planlandi" }
+  ]
+}
