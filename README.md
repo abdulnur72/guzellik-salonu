@@ -10,7 +10,7 @@ sırayla** bağlanır; hazır olmayanı bağlamıyoruz.
 
 | Sıra | Alt adres                        | Uygulama        | Cloudflare'deki adı | Durum         |
 |------|----------------------------------|-----------------|---------------------|---------------|
-| 1    | https://hali.esnaflartakip.com     | Halı Yıkama     | `hali-yikama` (Worker) | Bağlanıyor  |
+| 1    | https://hali.esnaflartakip.com     | Halı Yıkama     | `hali-yikama` (Worker) | Bağlı (2026-11-20) |
 | –    | https://guzellik.esnaflartakip.com | Güzellik Salonu | `guzellik-salonu`   | Planlandı     |
 | –    | https://kuafor.esnaflartakip.com   | Kuaför          | `kuaforum`          | Planlandı     |
 | –    | https://berber.esnaflartakip.com   | Berber          | `berberim`          | Planlandı     |

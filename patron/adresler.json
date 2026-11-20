@@ -7,7 +7,7 @@
       "ad": "Halı Yıkama",
       "adres": "https://hali.esnaflartakip.com",
       "cloudflareWorker": "hali-yikama",
-      "durum": "baglaniyor"
+      "durum": "bagli"
     },
     { "kod": "guzellik", "ad": "Güzellik Salonu", "adres": "https://guzellik.esnaflartakip.com", "durum": "planlandi" },
     { "kod": "kuafor",   "ad": "Kuaför",          "adres": "https://kuafor.esnaflartakip.com",   "durum": "planlandi" },
