@@ -1,0 +1,14 @@
+{
+  "name": "Sahip Paneli",
+  "short_name": "Sahip",
+  "lang": "tr",
+  "start_url": "/patron",
+  "scope": "/patron",
+  "orientation": "portrait",
+  "display": "standalone",
+  "background_color": "#EEF0F7",
+  "theme_color": "#34308F",
+  "icons": [
+    { "src": "/patron-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
