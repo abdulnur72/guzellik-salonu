@@ -80,6 +80,19 @@ Para birimi, saat dilimi, dil ve ülke her işletmenin ayarıdır (varsayılan T
 - Müşteri hesap açmaz: randevu sayfası yalnızca şubenin herkese açık bilgisini ve dolu saatleri (isimsiz) görür. Talep sunucuda tekrar kontrol edilir; aynı saat aynı uzmana iki kez verilmez. Müşteri kendi randevusunu, telefonuna verilen gizli anahtarla görür ve iptal eder.
 - Yanlış PIN 15 dakikada 8 denemeyle, randevu talebi saatte 10 taleple sınırlı.
 
+### Çok dükkânlı yapı (birden çok güzellik salonu)
+
+- Her güzellik salonu ayrı bir işletmedir: satırları `rows.biz` (işletme kimliği) ile ayrılır, oturumlar `sessions.biz` taşır. Sunucu her okumada ve yazmada yalnızca oturumun işletmesine bakar; başka salonun satırına yazma, silme ve şubesine satır ekleme reddedilir (`test/coklu-salon.test.ts`).
+- Salonun **kodu** = şubesinin kısa adı (`/s/<kod>`, `/r/<kod>`), sahip panelindeki dükkân koduyla aynıdır. Sahip girişi `/sahip/<kod>`; kodsuz eski `/sahip` (ve `/`) en eski salona (Lila) gider.
+- **Sahip PIN'i salona özeldir** (`secrets`: `owner:<işletme>`). Yeni salon sahip panelinden açılır: dükkânı "Güzellik Salonu" olarak ekle → kartındaki **Salonu kur** (sahip ve yönetici PIN'i). Kurulu salonda aynı yerden unutulan PIN yenilenir.
+- **PIN'siz panel** (demo için): sahip panelinde dükkân kartında **PIN'siz panel aç**. Panel linki girişsiz, resepsiyon yetkisiyle açılır (randevu, müşteri, paket, stok; ciro ve gider yok). Yönetici sekmesi ve personelin kişisel sayfası yine PIN ister. Kapatınca açık PIN'siz oturumlar da düşer.
+- Kısa ad bütün sektörlerde tektir: güzellik şubesi başka sektörün dükkân kodunu (ör. halının `demo`'su) alamaz, tersi de olmaz (abonelik kilidi kodla bulunur).
+- Demo salonu: `bun scripts/seed-demo.ts > demo.sql` (kod `guzellik-demo`, yönetici PIN 1234, bir personelin PIN'i 5678, PIN'siz panel açık, en az 1 yıl deneme, bütün bilgiler uydurma).
+
+**Güncelleme sırası (canlıda):** yedek al → `db/migrations/0007_coklu_salon.sql` (yalnızca ekler; eski kod bununla da çalışır) → yeni Worker'ı yükle → hemen `db/sonra/0007_eksik_biz.sql` (aradaki sürede eski kodun yazdığı satırları Lila'ya bağlar; tekrar çalışması zararsız). Geri dönüş: önceki Worker sürümü.
+
+**Denemeler:** `npm test` (çekirdek, vitest), `npm run test:server` (çok dükkânlı sunucu, bun), diğer uygulamaların klasöründe `PATRON_WORKER=<tam yol>/dist-worker/_worker.js bun test`.
+
 ## Yol haritası
 
 1. ✅ İskelet, ortak çekirdek, güzellik paketi, demo modunda tam çalışan ekranlar, veritabanı şeması

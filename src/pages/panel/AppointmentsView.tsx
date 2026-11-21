@@ -7,11 +7,11 @@ import { t } from '../../i18n'
 import { Strip } from '../../ui/layout'
 import { ServicePicker, SlotPicker, StaffPicker } from '../../ui/pickers'
 import { waLink } from '../../ui/whatsapp'
-import { currentStaff, isManager, isReception, seesAll, type PanelCtx } from './ctx'
+import { currentStaff, isManager, isOpen, isReception, seesAll, type PanelCtx } from './ctx'
 
 export function AppointmentsView({ ctx }: { ctx: PanelCtx }) {
   const me = currentStaff(ctx)
-  if (!isManager(ctx) && !me)
+  if (!isManager(ctx) && !me && !isOpen(ctx))
     return (
       <>
         <Strip>{t('appt.strip')}</Strip>

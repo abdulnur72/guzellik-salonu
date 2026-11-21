@@ -10,7 +10,8 @@
     "db:local": "wrangler d1 migrations apply guzellik-salonu --local",
     "test": "vitest run",
     "typecheck": "tsc -b && tsc -p tsconfig.server.json",
-    "seed": "tsx scripts/seed.ts"
+    "seed": "tsx scripts/seed.ts",
+    "test:server": "bun test ./test/"
   },
   "dependencies": {
     "react": "^19.3.1",

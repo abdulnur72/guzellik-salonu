@@ -1,9 +1,11 @@
-// İşletme sahibi paneli: /sahip
-// Sahip tek linkten girer, bütün şubelerin bu ayki durumunu görür,
+// İşletme sahibi paneli: /sahip/<kod>
+// Her salonun sahibi kendi salonunun koduyla (şubelerinden birinin kısa adı)
+// ve kendi sahip PIN'iyle girer, bütün şubelerinin bu ayki durumunu görür,
 // şube ekler ve istediği şubenin yönetici ekranına geçer.
+// Kodsuz eski adres (/sahip) en eski salona (Lila) yönlenir.
 
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { addBranch, monthlyFee, updateBusiness } from '../core/data/actions'
 import { loginError, loginOwner, logout, ownerPinClashes } from '../core/data/auth'
 import { useDb } from '../core/data/demoStore'
@@ -20,29 +22,47 @@ import { StatTiles, Table } from '../ui/pickers'
 import { LoadState } from './PanelPage'
 
 const OWNER_KEY = 'salon-owner'
+/** Sahip oturumunun hangi salona ait olduğu (aynı cihazda iki salon karışmasın) */
+const OWNER_KOD_KEY = 'salon-owner-kod'
 
-/** Sahip panelindeki sekme çubuğu: diğer sekmeler son açılan şubenin paneline gider. */
-function OwnerTabs({ firstSlug }: { firstSlug?: string }) {
+/** Sahip panelindeki sekme çubuğu: diğer sekmeler bu salonun son açılan (ya da ilk) şubesine gider. */
+function OwnerTabs({ firstSlug, slugs = [] }: { firstSlug?: string; slugs?: string[] }) {
   const nav = useNavigate()
   const go = (k: AppTab) => {
     if (k === 'business') return
-    const slug = lastSlug() || firstSlug
+    const last = lastSlug()
+    const slug = last && slugs.includes(last) ? last : firstSlug
     if (slug) nav(`/s/${slug}?tab=${k}`)
   }
   return <AppTabs active="business" onPick={go} />
 }
 
-/** Sahip oturumu: gerçek modda sunucunun verdiği anahtar, demo modunda '1' */
-function ownerToken() {
+/** Sahip oturumu: gerçek modda sunucunun verdiği anahtar, demo modunda '1'. Başka salonunki sayılmaz. */
+function ownerToken(kod: string) {
   try {
-    return sessionStorage.getItem(OWNER_KEY)
+    const t = sessionStorage.getItem(OWNER_KEY)
+    return t && (isDemo || sessionStorage.getItem(OWNER_KOD_KEY) === kod) ? t : null
   } catch {
     return null
   }
 }
 
 export function OwnerPage() {
-  const [tok, setTok] = useState(ownerToken)
+  const { kod } = useParams()
+  // Kodsuz eski adres: en eski salonun (Lila) koduna yönlenir
+  if (!kod) return <DefaultOwner />
+  return <Owner key={kod} kod={kod} />
+}
+
+function DefaultOwner() {
+  const idx = useIndex()
+  if (typeof idx !== 'object') return <LoadState state={idx} />
+  const first = idx.branches[0]
+  return first ? <Navigate to={`/sahip/${first.slug}`} replace /> : <LoadState state="missing" />
+}
+
+function Owner({ kod }: { kod: string }) {
+  const [tok, setTok] = useState(() => ownerToken(kod))
   const setSession = (v: string | null) => {
     if (!v && tok && !isDemo) {
       logout(tok)
@@ -50,8 +70,13 @@ export function OwnerPage() {
     }
     setTok(v)
     try {
-      if (v) sessionStorage.setItem(OWNER_KEY, v)
-      else sessionStorage.removeItem(OWNER_KEY)
+      if (v) {
+        sessionStorage.setItem(OWNER_KEY, v)
+        sessionStorage.setItem(OWNER_KOD_KEY, kod)
+      } else {
+        sessionStorage.removeItem(OWNER_KEY)
+        sessionStorage.removeItem(OWNER_KOD_KEY)
+      }
     } catch {
       /* yok say */
     }
@@ -62,6 +87,7 @@ export function OwnerPage() {
         setTok(null)
         try {
           sessionStorage.removeItem(OWNER_KEY)
+          sessionStorage.removeItem(OWNER_KOD_KEY)
         } catch {
           /* yok say */
         }
@@ -69,22 +95,23 @@ export function OwnerPage() {
     [],
   )
   useEffect(() => onError((code) => alert(code === 'network' ? t('common.network') : code === 'pin_taken' ? t('common.pinTaken') : t('common.saveError'))), [])
-  return tok ? <OwnerPanel token={tok} setSession={setSession} /> : <OwnerLogin onLogin={setSession} />
+  return tok ? <OwnerPanel token={tok} setSession={setSession} /> : <OwnerLogin kod={kod} onLogin={setSession} />
 }
 
-function OwnerLogin({ onLogin }: { onLogin: (token: string) => void }) {
-  const idx = useIndex()
+function OwnerLogin({ kod, onLogin }: { kod: string; onLogin: (token: string) => void }) {
+  const idx = useIndex(kod)
+  if (idx === 'error') return <LoadState state="missing" />
   const [pin, setPin] = useState('')
   const [busy, setBusy] = useState(false)
   return (
     <div className="wrap narrow">
       <SalonHeader business={{ name: typeof idx === 'object' ? idx.business.name : '' }} />
-      <OwnerTabs firstSlug={typeof idx === 'object' ? idx.branches[0]?.slug : undefined} />
+      <OwnerTabs firstSlug={typeof idx === 'object' ? idx.branches[0]?.slug : undefined} slugs={typeof idx === 'object' ? idx.branches.map((b) => b.slug) : []} />
       <form className="card" onSubmit={async (e) => {
         e.preventDefault()
         if (busy) return
         setBusy(true)
-        const r = await loginOwner(pin)
+        const r = await loginOwner(pin, kod)
         setBusy(false)
         if (r.ok) onLogin(r.token ?? '1')
         else alert(loginError(r.reason))
@@ -134,7 +161,7 @@ function OwnerPanel({ token, setSession }: { token: string; setSession: (v: stri
   return (
     <div className="wrap">
       <SalonHeader business={db.business} branch={first} />
-      <OwnerTabs firstSlug={first.slug} />
+      <OwnerTabs firstSlug={first.slug} slugs={db.branches.map((b) => b.branch.slug)} />
       <Strip>{t('owner.strip')}</Strip>
       <StatTiles items={[[t('owner.totalRevenue'), fmt(total.c)], [t('owner.totalNet'), fmt(total.net)], [t('owner.branchCount'), n]]} />
       <div className="grid2">

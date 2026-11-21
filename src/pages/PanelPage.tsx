@@ -1,9 +1,11 @@
 // Salon paneli: /s/:slug
 // Personel, resepsiyon ve yönetici aynı linkten girer; kim olduğu PIN ile belirlenir.
+// PIN'siz panel açık salonda (sahip panelinden açılır) link girişsiz, resepsiyon
+// yetkisiyle açılır; Yönetici sekmesi ve kişisel personel sayfası yine PIN ister.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { logout } from '../core/data/auth'
+import { logout, openPanel } from '../core/data/auth'
 import { useBranch } from '../core/data/demoStore'
 import { disconnect, onAuthLost, onError, useConnection } from '../core/data/remote'
 import { t } from '../i18n'
@@ -40,7 +42,13 @@ function Panel({ slug }: { slug: string | undefined }) {
   const nav = useNavigate()
   const asked = params.get('tab')
   const [tab, setTab] = useState<AppTab>(() =>
-    isAppTab(asked) && asked !== 'business' ? asked : session?.kind === 'manager' ? 'manager' : 'staff',
+    isAppTab(asked) && asked !== 'business'
+      ? asked
+      : session?.kind === 'manager'
+        ? 'manager'
+        : session?.kind === 'open'
+          ? 'appointments'
+          : 'staff',
   )
   // ?tab= yalnızca açılışta okunur, sonra adres temiz kalsın
   useEffect(() => {
@@ -49,15 +57,16 @@ function Panel({ slug }: { slug: string | undefined }) {
   useEffect(() => {
     if (slug) rememberSlug(slug)
   }, [slug])
-  const pickTab = (k: AppTab) => (k === 'business' ? nav('/sahip') : setTab(k))
+  // İşletme sekmesi bu salonun sahip paneline gider (her salonun kendi sahip PIN'i)
+  const pickTab = (k: AppTab) => (k === 'business' ? nav(slug ? `/sahip/${slug}` : '/sahip') : setTab(k))
   const fmt = useMoney(db.business)
   const clock = useClock(db.business, data?.branch)
 
   const setSession = (s: Session) => {
-    if (!s && session?.token) {
+    if (session?.token && s?.token !== session.token) {
       // Sahip başka şubeye geçerken kendi oturumu kapanmasın
       if (!isOwnerToken(session.token)) logout(session.token)
-      disconnect()
+      if (!s) disconnect()
     }
     setSessionState(s)
     try {
@@ -67,6 +76,29 @@ function Panel({ slug }: { slug: string | undefined }) {
       /* yok say */
     }
   }
+
+  // PIN'siz panel: oturum yoksa (ilk açılış ya da personel/yönetici çıkış yapınca)
+  // salon PIN'siz açıksa resepsiyon yetkisiyle açılır; açık değilse giriş ekranları kalır.
+  const opening = useRef(false)
+  const firstOpenDone = useRef(false)
+  const current = useRef(session)
+  current.current = session
+  const hasSession = !!session
+  useEffect(() => {
+    if (hasSession || !slug || opening.current) return
+    opening.current = true
+    openPanel(slug).then((token) => {
+      opening.current = false
+      // Bu arada PIN'le giriş yapıldıysa ona dokunma
+      if (token && !current.current) {
+        setSession({ kind: 'open', token })
+        // İlk açılışta (link belli bir sekme istemediyse) randevular gösterilir
+        if (!firstOpenDone.current && !isAppTab(asked)) setTab('appointments')
+        firstOpenDone.current = true
+      } else if (token) logout(token)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasSession, slug])
 
   const conn = useConnection(session?.token, slug)
   useEffect(

@@ -221,8 +221,11 @@ export interface PublicIndex {
   branches: { id: Id; name: string; slug: string }[]
 }
 
-/** İşletme adı ve şube listesi (giriş sayfası için). Demo modunda yerel kayıttan. */
-export function useIndex(): PublicIndex | 'loading' | 'error' {
+/**
+ * Salonun adı ve şube listesi (giriş sayfası için). kod: salonun kodu (şubelerinden
+ * birinin kısa adı); verilmezse en eski salon (Lila). Demo modunda yerel kayıttan.
+ */
+export function useIndex(kod?: string): PublicIndex | 'loading' | 'error' {
   const [v, setV] = useState<PublicIndex | 'loading' | 'error'>(() =>
     isDemo
       ? { business: host.get().business, branches: host.get().branches.map(({ branch: b }) => ({ id: b.id, name: b.name, slug: b.slug })) }
@@ -231,11 +234,12 @@ export function useIndex(): PublicIndex | 'loading' | 'error' {
   useEffect(() => {
     if (isDemo) return
     let alive = true
-    api<PublicIndex>('/api/public').then(
+    setV('loading')
+    api<PublicIndex>('/api/public' + (kod ? `?k=${encodeURIComponent(kod)}` : '')).then(
       (r) => alive && setV(r),
       () => alive && setV('error'),
     )
     return () => void (alive = false)
-  }, [])
+  }, [kod])
   return v
 }

@@ -55,7 +55,7 @@ export function HomePage({ list = false }: { list?: boolean }) {
           </ul>
         </div>
       )}
-      <Link className="btn2 block center" to="/sahip">{t('owner.link')}</Link>
+      <Link className="btn2 block center" to={idx.branches[0] ? `/sahip/${idx.branches[0].slug}` : '/sahip'}>{t('owner.link')}</Link>
       {isDemo && (
         <button className="btn2 block" onClick={() => confirm(t('home.resetConfirm')) && resetDemo()}>{t('home.reset')}</button>
       )}

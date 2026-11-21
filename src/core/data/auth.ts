@@ -47,14 +47,28 @@ export function ownerPinClashes(db: DemoDatabase, pin: string) {
   return db.branches.some((b) => b.staff.some((s) => s.active && s.pin === pin))
 }
 
-export async function loginOwner(pin: string): Promise<LoginResult> {
-  if (!isDemo) return server({ scope: 'owner', pin })
+/** Sahip girişi: kod = salonun kodu (şubelerinden birinin kısa adı); her salonun kendi sahip PIN'i */
+export async function loginOwner(pin: string, kod?: string): Promise<LoginResult> {
+  if (!isDemo) return server({ scope: 'owner', slug: kod, pin })
   return pin === getDb().business.ownerPin ? { ok: true } : { ok: false, reason: 'wrong_pin' }
 }
 
 export async function loginManager(branch: Branch, pin: string): Promise<LoginResult> {
   if (!isDemo) return server({ scope: 'branch', slug: branch.slug, as: 'manager', pin })
   return pin === branch.managerPin ? { ok: true } : { ok: false, reason: 'wrong_pin' }
+}
+
+/**
+ * PIN'siz panel: sahip panelinde "PIN'siz panel" açılmış salonda şube linki
+ * girişsiz (resepsiyon yetkisiyle) açılır. Açık değilse null.
+ */
+export async function openPanel(slug: string): Promise<string | null> {
+  if (isDemo) return null
+  try {
+    return (await api<{ token: string }>('/api/open', { body: { slug } })).token
+  } catch {
+    return null
+  }
 }
 
 /** PIN'i olmayan personelin ilk girişinde verilen PIN kaydedilir */

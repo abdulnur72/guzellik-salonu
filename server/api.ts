@@ -9,13 +9,22 @@
 // - Müşteri (giriş yok): şubenin herkese açık bilgisi, dolu saatler,
 //   randevu talebi, kendi randevusunu görme ve iptal.
 // PIN'ler istemciye hiç gönderilmez; tuzlanmış özetleri secrets tablosundadır.
+//
+// Çok dükkânlı: her güzellik salonu bir işletmedir (rows.biz = işletme kimliği).
+// Her istek yalnızca kendi işletmesinin satırlarını görür ve yazar. Şubeye ait
+// istekte işletme şubeden (kısa adından), girişli istekte oturumdan bulunur.
+// Sahip PIN'i işletmeye özeldir (secrets: owner:<işletme>). Adres/kod
+// verilmeyen eski istekler (/, /sahip) en eski işletmeye (Lila) gider.
+// PIN'siz panel: sahip panelinde "PIN'siz panel" açılan salonun /s/<kod>
+// linki girişsiz resepsiyon yetkisiyle açılır (POST /api/open).
 
 import type { D1Database, D1PreparedStatement } from '@cloudflare/workers-types'
 import { branchOf, KINDS, SECRET_MARK, type Kind, type Row } from '../src/core/data/rows'
 import { daySlots, freeStaff, MIN_BLOCK_MIN } from '../src/core/scheduling'
 import { addDays, businessToday, toMinutes, zonedParts } from '../src/core/time'
 import type { Appointment, Branch, Business, Customer, Service, Staff } from '../src/core/types'
-import { handlePatron, lockOfOwner, lockOfSlug, type LockInfo } from './patron'
+import { ixOf, phoneKey } from './ixof'
+import { handlePatron, isOpenPanel, lockOfOwner, lockOfSlug, slugUsedByOtherSector, type LockInfo } from './patron'
 
 export interface Env {
   DB: D1Database
@@ -27,6 +36,8 @@ interface Sess {
   role: Role
   branchId: string | null
   staffId: string | null
+  /** Oturumun işletmesi */
+  biz: string
 }
 
 type Data = Record<string, unknown>
@@ -37,7 +48,11 @@ interface DbRow {
   data: string
   seq: number
   deleted: number
+  biz: string
 }
+
+/** Güzellik uygulamasının oturum rolleri (sessions tablosu halı/berber/kuaför/spor ile ortak) */
+const SALON_ROLES = ['owner', 'manager', 'staff', 'open']
 
 class HttpError extends Error {
   constructor(
@@ -81,7 +96,7 @@ export async function handle(req: Request, env: Env): Promise<Response> {
     const api = new Api(env.DB, req)
     const m = req.method
     if (p[0] === 'patron') return handlePatron(req, env.DB, p.slice(1))
-    if (m === 'GET' && p[0] === 'public' && p.length === 1) return json(await api.publicIndex())
+    if (m === 'GET' && p[0] === 'public' && p.length === 1) return json(await api.publicIndex(url.searchParams.get('k') || ''))
     if (p[0] === 'public' && p[1] === 'b' && p[2]) {
       const slug = p[2]
       await api.checkSlugLock(slug)
@@ -92,6 +107,7 @@ export async function handle(req: Request, env: Env): Promise<Response> {
       if (m === 'POST' && p[3] === 'cancel') return json(await api.cancel(slug, await body(req)))
     }
     if (m === 'POST' && p[0] === 'login') return json(await api.login(await body(req)))
+    if (m === 'POST' && p[0] === 'open') return json(await api.openPanel(await body(req)))
     if (m === 'POST' && p[0] === 'logout') return json(await api.logout())
     if (m === 'POST' && p[0] === 'pin') return json(await api.changeOwnPin(await body(req)))
     if (m === 'GET' && p[0] === 'sync') return json(await api.sync(Number(url.searchParams.get('since') || 0)))
@@ -151,19 +167,12 @@ async function pinMatchesAny(db: D1Database, pin: string, q: { keys?: string[]; 
 
 const validPin = (pin: unknown): pin is string => typeof pin === 'string' && /^\d{4,8}$/.test(pin)
 const str = (v: unknown, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
-const phoneKey = (phone: string) => phone.replace(/\D/g, '').slice(-10)
-
-/** Satırın arama anahtarı */
-export function ixOf(kind: Kind, data: Data): string | null {
-  if (kind === 'branch') return String(data.slug ?? '')
-  if (kind === 'appointment') return String(data.date ?? '')
-  if (kind === 'customer') return phoneKey(String(data.phone ?? '')) || null
-  return null
-}
+export { ixOf }
 
 /** Gizli alanı olan satır türleri: alan adı ve secrets anahtarı */
 const SECRET_FIELD: Partial<Record<Kind, [string, (id: string) => string]>> = {
-  business: ['ownerPin', () => 'owner'],
+  // İşletme satırının kimliği işletmenin kendisidir: sahip PIN'i işletmeye özel
+  business: ['ownerPin', (id) => `owner:${id}`],
   branch: ['managerPin', (id) => `manager:${id}`],
   staff: ['pin', (id) => `staff:${id}`],
 }
@@ -205,24 +214,42 @@ class Api {
 
   // --- Okuma yardımcıları ---
 
-  private async row(kind: Kind, id: string) {
-    const r = await this.db.prepare('SELECT * FROM rows WHERE kind = ? AND id = ? AND deleted = 0').bind(kind, id).first<DbRow>()
+  /** İşletmenin satırı (başka işletmeninki null) */
+  private async row(kind: Kind, id: string, biz: string) {
+    const r = await this.db
+      .prepare('SELECT * FROM rows WHERE kind = ? AND id = ? AND biz = ? AND deleted = 0')
+      .bind(kind, id, biz)
+      .first<DbRow>()
     return r ? toRow(r) : null
   }
 
-  private async business() {
-    const r = await this.db.prepare("SELECT * FROM rows WHERE kind = 'business' AND deleted = 0 LIMIT 1").first<DbRow>()
+  /** İşletme satırı */
+  private async business(biz: string) {
+    const r = await this.db
+      .prepare("SELECT * FROM rows WHERE kind = 'business' AND id = ? AND biz = ? AND deleted = 0 LIMIT 1")
+      .bind(biz, biz)
+      .first<DbRow>()
     if (!r) throw new HttpError(503, 'not_set_up')
     return toRow(r)
   }
 
+  /** Kod verilmeyen eski adresler (/, /sahip) için: en eski işletme */
+  private async defaultBiz() {
+    const r = await this.db
+      .prepare("SELECT id FROM rows WHERE kind = 'business' AND deleted = 0 ORDER BY rowid LIMIT 1")
+      .first<{ id: string }>()
+    if (!r) throw new HttpError(503, 'not_set_up')
+    return r.id
+  }
+
+  /** Şube kısa adından şube satırı ve işletmesi */
   private async branchBySlug(slug: string) {
     const r = await this.db
       .prepare("SELECT * FROM rows WHERE kind = 'branch' AND ix = ? AND deleted = 0 LIMIT 1")
       .bind(slug)
       .first<DbRow>()
-    if (!r) throw new HttpError(404, 'branch_not_found')
-    return toRow(r)
+    if (!r || !r.biz) throw new HttpError(404, 'branch_not_found')
+    return { ...toRow(r), biz: r.biz }
   }
 
   private async list(branchId: string, kind: Kind, ix?: string) {
@@ -239,15 +266,18 @@ class Api {
     return this.db.prepare("UPDATE meta SET v = v + 1 WHERE k = 'seq'")
   }
 
-  private put(kind: Kind, id: string, branchId: string, data: Data | null) {
+  /** Satır yazar. Başka işletmenin satırının üstüne asla yazmaz (WHERE rows.biz). */
+  private put(kind: Kind, id: string, branchId: string, data: Data | null, biz: string) {
+    if (!biz) throw new HttpError(500, 'no_biz')
     return this.db
       .prepare(
-        `INSERT INTO rows (kind, id, branch_id, ix, data, seq, deleted)
-         VALUES (?1, ?2, ?3, ?4, ?5, (SELECT v FROM meta WHERE k = 'seq'), ?6)
+        `INSERT INTO rows (kind, id, branch_id, ix, data, seq, deleted, biz)
+         VALUES (?1, ?2, ?3, ?4, ?5, (SELECT v FROM meta WHERE k = 'seq'), ?6, ?7)
          ON CONFLICT (kind, id) DO UPDATE SET branch_id = excluded.branch_id, ix = excluded.ix,
-           data = excluded.data, seq = excluded.seq, deleted = excluded.deleted`,
+           data = excluded.data, seq = excluded.seq, deleted = excluded.deleted
+         WHERE rows.biz = excluded.biz`,
       )
-      .bind(kind, id, branchId, data ? ixOf(kind, data) : null, data ? JSON.stringify(data) : '{}', data ? 0 : 1)
+      .bind(kind, id, branchId, data ? ixOf(kind, data) : null, data ? JSON.stringify(data) : '{}', data ? 0 : 1, biz)
   }
 
   // --- Sınırlama ---
@@ -268,8 +298,8 @@ class Api {
   // diğer PIN hakkında ipucu verdiği için her ret, yanlış PIN denemesi gibi
   // sayılır ve aynı sınıra tabidir.
 
-  private async staffPinClashes(branchId: string, pin: string) {
-    return pinMatchesAny(this.db, pin, { keys: [`manager:${branchId}`, 'owner'] })
+  private async staffPinClashes(branchId: string, biz: string, pin: string) {
+    return pinMatchesAny(this.db, pin, { keys: [`manager:${branchId}`, `owner:${biz}`] })
   }
 
   private async managerPinClashes(branchId: string, pin: string) {
@@ -277,8 +307,13 @@ class Api {
     return pinMatchesAny(this.db, pin, { keys: staff.map((s) => `staff:${s.id}`) })
   }
 
-  private async ownerPinClashes(pin: string) {
-    return pinMatchesAny(this.db, pin, { prefix: 'staff:' })
+  /** Sahip PIN'i yalnızca kendi işletmesinin personeliyle karşılaştırılır */
+  private async ownerPinClashes(biz: string, pin: string) {
+    const { results } = await this.db
+      .prepare("SELECT id FROM rows WHERE kind = 'staff' AND biz = ? AND deleted = 0")
+      .bind(biz)
+      .all<{ id: string }>()
+    return pinMatchesAny(this.db, pin, { keys: results.map((s) => `staff:${s.id}`) })
   }
 
   /** Çakışan PIN'i reddeder; ret yanlış deneme sayılır */
@@ -299,13 +334,17 @@ class Api {
     if (l) throw lockedError(l)
   }
 
-  private async checkSessionLock(role: Role | 'owner', branchId: string | null) {
+  /** Sahip: yalnızca kendi işletmesinin şubelerine bakılır (başka salonun aboneliği kilitlemez) */
+  private async checkSessionLock(role: Role | 'owner', branchId: string | null, biz: string) {
     let l: LockInfo | null
     if (role === 'owner') {
-      const { results } = await this.db.prepare("SELECT ix FROM rows WHERE kind = 'branch' AND deleted = 0").all<{ ix: string }>()
+      const { results } = await this.db
+        .prepare("SELECT ix FROM rows WHERE kind = 'branch' AND biz = ? AND deleted = 0")
+        .bind(biz)
+        .all<{ ix: string }>()
       l = await safeLock(() => lockOfOwner(this.db, results.map((r) => r.ix)))
     } else {
-      const br = branchId ? await this.row('branch', branchId) : null
+      const br = branchId ? await this.row('branch', branchId, biz) : null
       l = br ? await safeLock(() => lockOfSlug(this.db, String(br.data!.slug))) : null
     }
     if (l) throw lockedError(l)
@@ -324,50 +363,92 @@ class Api {
     const s = await this.db
       .prepare('SELECT * FROM sessions WHERE token = ? AND expires > ?')
       .bind(token, Date.now())
-      .first<{ role: string; branch_id: string | null; staff_id: string | null }>()
-    if (!s || s.role === 'platform') throw new HttpError(401, 'login')
-    let role = s.role as Role
+      .first<{ role: string; branch_id: string | null; staff_id: string | null; biz: string | null }>()
+    // Yalnızca güzellik oturumları; işletmesi belli olmayan (eski/başka uygulama) oturum geçersiz
+    if (!s || !SALON_ROLES.includes(s.role) || !s.biz) throw new HttpError(401, 'login')
+    const biz = s.biz
+    let role: Role = s.role === 'open' ? 'reception' : (s.role as Role)
+    if (s.role === 'open') {
+      // PIN'siz panel: salonun ayarı kapatılırsa oturum da geçersiz olur
+      const br = s.branch_id ? await this.row('branch', s.branch_id, biz) : null
+      if (!br || !(await isOpenPanel(this.db, String(br.data!.slug)))) throw new HttpError(401, 'login')
+    }
     if (s.role === 'staff') {
       // Rol ve aktiflik her istekte personel kaydından okunur
-      const st = await this.row('staff', s.staff_id!)
+      const st = await this.row('staff', s.staff_id!, biz)
       const d = st?.data as Partial<Staff> | undefined
       if (!d?.active || d.branchId !== s.branch_id) throw new HttpError(401, 'login')
       role = d.role === 'reception' ? 'reception' : 'expert'
     }
-    await this.checkSessionLock(role, s.branch_id)
-    this.sess = { token, role, branchId: s.branch_id, staffId: s.staff_id }
+    if (role !== 'owner' && !s.branch_id) throw new HttpError(401, 'login')
+    await this.checkSessionLock(role, s.branch_id, biz)
+    this.sess = { token, role, branchId: s.branch_id, staffId: s.staff_id, biz }
     return this.sess
+  }
+
+  private newSession(role: string, branchId: string | null, staffId: string | null, biz: string) {
+    const now = Date.now()
+    const token = randomToken()
+    return {
+      token,
+      stmts: [
+        this.db
+          .prepare('INSERT INTO sessions (token, role, branch_id, staff_id, expires, biz) VALUES (?, ?, ?, ?, ?, ?)')
+          .bind(token, role, branchId, staffId, now + SESSION_DAYS * 86_400_000, biz),
+        this.db.prepare('DELETE FROM sessions WHERE expires < ?').bind(now),
+        this.db.prepare('DELETE FROM attempts WHERE ts < ?').bind(now - 86_400_000),
+      ],
+    }
+  }
+
+  /**
+   * PIN'siz panel: sahip panelinde "PIN'siz panel" açılmış salonun linki
+   * girişsiz açılır. Yetki resepsiyonla aynıdır (randevu, müşteri, paket,
+   * stok; ciro ve giderler görünmez). Yönetici sekmesi yine yönetici PIN'i ister.
+   */
+  async openPanel(b: Record<string, unknown>) {
+    const br = await this.branchBySlug(str(b.slug, 80))
+    const slug = String(br.data!.slug)
+    await this.checkSlugLock(slug)
+    if (!(await isOpenPanel(this.db, slug))) throw new HttpError(403, 'not_open')
+    const limitKey = `open:${this.ip()}`
+    if (await this.limited(limitKey, 60, 3_600_000)) throw new HttpError(429, 'too_many')
+    const { token, stmts } = this.newSession('open', br.id, null, br.biz)
+    await this.db.batch([...stmts, this.db.prepare('INSERT INTO attempts (key, ts) VALUES (?, ?)').bind(limitKey, Date.now())])
+    return { token, role: 'reception' as const, branchId: br.id, staffId: null }
   }
 
   async login(b: Record<string, unknown>) {
     const pin = b.pin
-    const now = Date.now()
     let key: string
     let sess: Omit<Sess, 'token'>
     let secretKey: string
     let firstPin: { staff: Row } | null = null
 
     if (b.scope === 'owner') {
-      const biz = await this.business()
-      key = 'owner'
-      secretKey = 'owner'
-      sess = { role: 'owner', branchId: null, staffId: null }
-      void biz
-      await this.checkSessionLock('owner', null)
+      // Sahip girişi salon koduyla (/sahip/<kod>: şubelerinden birinin kısa adı).
+      // Kodsuz eski istek en eski işletmeye (Lila) gider.
+      const kod = str(b.slug, 80)
+      const biz = kod ? (await this.branchBySlug(kod)).biz : await this.defaultBiz()
+      await this.business(biz)
+      key = `owner:${biz}`
+      secretKey = key
+      sess = { role: 'owner', branchId: null, staffId: null, biz }
+      await this.checkSessionLock('owner', null, biz)
     } else {
       const br = await this.branchBySlug(str(b.slug, 80))
       await this.checkSlugLock(String(br.data!.slug))
       if (b.as === 'manager') {
         key = `manager:${br.id}`
         secretKey = key
-        sess = { role: 'manager', branchId: br.id, staffId: null }
+        sess = { role: 'manager', branchId: br.id, staffId: null, biz: br.biz }
       } else {
-        const st = await this.row('staff', str(b.staffId, 64))
+        const st = await this.row('staff', str(b.staffId, 64), br.biz)
         const d = st?.data as Partial<Staff> | undefined
         if (!st || !d?.active || d.branchId !== br.id) throw new HttpError(404, 'staff_not_found')
         key = `staff:${st.id}`
         secretKey = key
-        sess = { role: d.role === 'reception' ? 'reception' : 'expert', branchId: br.id, staffId: st.id }
+        sess = { role: d.role === 'reception' ? 'reception' : 'expert', branchId: br.id, staffId: st.id, biz: br.biz }
         if (!d.pin) firstPin = { staff: st }
       }
     }
@@ -379,9 +460,9 @@ class Api {
     const stmts: D1PreparedStatement[] = []
     if (firstPin) {
       // Personelin ilk girişi: PIN'i kendisi belirler (yönetici/sahip PIN'iyle aynı olamaz)
-      if (await this.staffPinClashes(firstPin.staff.branchId, pin)) await this.rejectClash([limitKey, `pin:${key}`])
+      if (await this.staffPinClashes(firstPin.staff.branchId, sess.biz, pin)) await this.rejectClash([limitKey, `pin:${key}`])
       stmts.push(this.db.prepare('INSERT OR REPLACE INTO secrets (key, hash) VALUES (?, ?)').bind(secretKey, await hashPin(pin)))
-      stmts.push(this.bump(), this.put('staff', firstPin.staff.id, firstPin.staff.branchId, { ...firstPin.staff.data, pin: SECRET_MARK }))
+      stmts.push(this.bump(), this.put('staff', firstPin.staff.id, firstPin.staff.branchId, { ...firstPin.staff.data, pin: SECRET_MARK }, sess.biz))
     } else {
       const s = await this.db.prepare('SELECT hash FROM secrets WHERE key = ?').bind(secretKey).first<{ hash: string }>()
       if (!s || !(await checkPin(pin, s.hash))) {
@@ -390,16 +471,11 @@ class Api {
         throw new HttpError(403, 'wrong_pin')
       }
     }
-    const token = randomToken()
-    stmts.push(
-      this.db
-        .prepare('INSERT INTO sessions (token, role, branch_id, staff_id, expires) VALUES (?, ?, ?, ?, ?)')
-        .bind(token, sess.staffId ? 'staff' : sess.role, sess.branchId, sess.staffId, now + SESSION_DAYS * 86_400_000),
-      this.db.prepare('DELETE FROM sessions WHERE expires < ?').bind(now),
-      this.db.prepare('DELETE FROM attempts WHERE ts < ?').bind(now - 86_400_000),
-    )
+    const ns = this.newSession(sess.staffId ? 'staff' : sess.role, sess.branchId, sess.staffId, sess.biz)
+    stmts.push(...ns.stmts)
     await this.db.batch(stmts)
-    return { token, ...sess }
+    const { biz: _biz, ...out } = sess
+    return { token: ns.token, ...out }
   }
 
   /** Girişli personel kendi PIN'ini değiştirir: önce eski PIN'i doğrular */
@@ -417,7 +493,7 @@ class Api {
       await this.note(`pin:${key}`)
       throw new HttpError(403, 'wrong_pin')
     }
-    if (await this.staffPinClashes(s.branchId, next)) await this.rejectClash([limitKey, `pin:${key}`])
+    if (await this.staffPinClashes(s.branchId, s.biz, next)) await this.rejectClash([limitKey, `pin:${key}`])
     await this.db.batch([
       this.db.prepare('INSERT OR REPLACE INTO secrets (key, hash) VALUES (?, ?)').bind(key, await hashPin(next)),
       // Diğer cihazlardaki oturumları kapanır, bu cihaz açık kalır
@@ -452,11 +528,12 @@ class Api {
     const cur = await this.db.prepare("SELECT v FROM meta WHERE k = 'seq'").first<{ v: number }>()
     const full = !(since > 0)
     const cond = full ? 'deleted = 0' : 'seq > ?'
+    // Yalnızca oturumun işletmesi; şube oturumunda ayrıca yalnızca kendi şubesi (+ işletme satırı)
     const q =
       s.role === 'owner'
-        ? this.db.prepare(`SELECT * FROM rows WHERE ${cond} ORDER BY rowid`)
-        : this.db.prepare(`SELECT * FROM rows WHERE branch_id IN ('', ?) AND ${cond} ORDER BY rowid`)
-    const binds: unknown[] = s.role === 'owner' ? [] : [s.branchId]
+        ? this.db.prepare(`SELECT * FROM rows WHERE biz = ? AND ${cond} ORDER BY rowid`)
+        : this.db.prepare(`SELECT * FROM rows WHERE biz = ? AND branch_id IN ('', ?) AND ${cond} ORDER BY rowid`)
+    const binds: unknown[] = s.role === 'owner' ? [s.biz] : [s.biz, s.branchId]
     if (!full) binds.push(since)
     const { results } = await q.bind(...binds).all<DbRow>()
     const rows: Row[] = []
@@ -493,13 +570,21 @@ class Api {
     const existing = await this.db.batch(
       incoming.map((r) => this.db.prepare('SELECT * FROM rows WHERE kind = ? AND id = ?').bind(String(r.kind), String(r.id))),
     )
-    const biz = await this.business()
+    const biz = await this.business(s.biz)
     const stmts: D1PreparedStatement[] = [this.bump()]
+    // Bu işletmenin şubeleri: satır yalnızca bunlardan birine yazılabilir
+    const { results: myBranches } = await this.db
+      .prepare("SELECT id FROM rows WHERE kind = 'branch' AND biz = ?")
+      .bind(s.biz)
+      .all<{ id: string }>()
+    const ownBranch = new Set(myBranches.map((x) => x.id))
 
     for (let i = 0; i < incoming.length; i++) {
       const r = incoming[i]
       if (!KINDS.includes(r.kind) || typeof r.id !== 'string' || !r.id || r.id.length > 64) throw new HttpError(400, 'bad_row')
       const oldDb = (existing[i].results as DbRow[])[0]
+      // Başka işletmenin (silinmiş olsa bile) satırına dokunulamaz
+      if (oldDb && oldDb.biz !== s.biz) throw new HttpError(403, 'forbidden')
       const old = oldDb && !oldDb.deleted ? toRow(oldDb) : null
       const oldData = old?.data
 
@@ -507,7 +592,7 @@ class Api {
         if (!old) continue
         if (r.kind === 'business' || r.kind === 'branch') throw new HttpError(403, 'forbidden')
         if (!this.allowed(s, r.kind, old.branchId, null, oldData, undefined)) throw new HttpError(403, 'forbidden')
-        stmts.push(this.put(r.kind, r.id, old.branchId, null))
+        stmts.push(this.put(r.kind, r.id, old.branchId, null, s.biz))
         continue
       }
 
@@ -520,8 +605,11 @@ class Api {
         else {
           if (data.businessId !== biz.id || typeof data.slug !== 'string' || !/^[a-z0-9-]{1,60}$/.test(data.slug))
             throw new HttpError(400, 'bad_branch')
+          // Kısa ad bütün salonlarda tek olmalı (linkler /s/<kısa ad>); başka sektörün
+          // dükkân koduyla da çakışmamalı (abonelik kilidi kodla bulunur)
           const dup = await this.db.prepare("SELECT 1 FROM rows WHERE kind = 'branch' AND ix = ?").bind(data.slug).first()
-          if (dup) throw new HttpError(409, 'slug_taken')
+          if (dup || (await slugUsedByOtherSector(this.db, data.slug))) throw new HttpError(409, 'slug_taken')
+          ownBranch.add(String(data.id))
         }
       }
       // Uzman başkasının randevusunda tutarı göremediği için tutarı korunur
@@ -529,6 +617,8 @@ class Api {
 
       const branchId = branchOf(r.kind, data)
       if (old && old.branchId !== branchId && r.kind !== 'business') throw new HttpError(400, 'branch_change')
+      // Satır yalnızca bu işletmenin bir şubesine yazılabilir
+      if (r.kind !== 'business' && !ownBranch.has(branchId)) throw new HttpError(403, 'forbidden')
       if (!this.allowed(s, r.kind, old ? old.branchId : null, branchId, oldData, data)) throw new HttpError(403, 'forbidden')
 
       // PIN alanları
@@ -558,10 +648,10 @@ class Api {
           await this.checkLimit(limitKeys)
           const clash =
             r.kind === 'staff'
-              ? await this.staffPinClashes(branchId, v as string)
+              ? await this.staffPinClashes(branchId, s.biz, v as string)
               : r.kind === 'branch'
                 ? await this.managerPinClashes(r.id, v as string)
-                : await this.ownerPinClashes(v as string)
+                : await this.ownerPinClashes(s.biz, v as string)
           if (clash) await this.rejectClash(limitKeys)
           stmts.push(this.db.prepare('INSERT OR REPLACE INTO secrets (key, hash) VALUES (?, ?)').bind(key, await hashPin(v)))
           data[field] = SECRET_MARK
@@ -569,7 +659,7 @@ class Api {
           if (r.kind === 'staff') stmts.push(this.db.prepare('DELETE FROM sessions WHERE staff_id = ?').bind(r.id))
         }
       }
-      stmts.push(this.put(r.kind, r.id, branchId, data))
+      stmts.push(this.put(r.kind, r.id, branchId, data, s.biz))
     }
     if (stmts.length > 1) await this.db.batch(stmts)
     return { ok: true }
@@ -577,9 +667,14 @@ class Api {
 
   // --- Herkese açık (müşteri) ---
 
-  async publicIndex() {
-    const biz = await this.business()
-    const { results } = await this.db.prepare("SELECT * FROM rows WHERE kind = 'branch' AND deleted = 0 ORDER BY rowid").all<DbRow>()
+  /** Salonun adı ve şubeleri. kod: şubelerinden birinin kısa adı; yoksa en eski işletme (Lila) */
+  async publicIndex(kod: string) {
+    const bizId = kod ? (await this.branchBySlug(str(kod, 80))).biz : await this.defaultBiz()
+    const biz = await this.business(bizId)
+    const { results } = await this.db
+      .prepare("SELECT * FROM rows WHERE kind = 'branch' AND biz = ? AND deleted = 0 ORDER BY rowid")
+      .bind(bizId)
+      .all<DbRow>()
     return {
       business: publicBusiness(biz.data!),
       branches: results.map((r) => {
@@ -590,8 +685,8 @@ class Api {
   }
 
   async publicBranch(slug: string) {
-    const biz = await this.business()
     const br = await this.branchBySlug(slug)
+    const biz = await this.business(br.biz)
     const staff = await this.list(br.id, 'staff')
     const services = await this.list(br.id, 'service')
     const rows: Row[] = [
@@ -603,8 +698,8 @@ class Api {
     return { rows }
   }
 
-  private async clock(br: Branch) {
-    const biz = (await this.business()).data as unknown as Business
+  private async clock(br: Branch, bizId: string) {
+    const biz = (await this.business(bizId)).data as unknown as Business
     const now = new Date()
     return {
       today: businessToday(now, biz.timeZone, br.dayCutoffHour),
@@ -656,7 +751,7 @@ class Api {
     if (!name || !/^(0?5\d{9}|905\d{9})$/.test(phone.replace(/\D/g, ''))) throw new HttpError(400, 'bad_contact')
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time) || !ids.length) throw new HttpError(400, 'bad_request')
 
-    const { today, nowMin } = await this.clock(branch)
+    const { today, nowMin } = await this.clock(branch, br.biz)
     if (date < today || date > addDays(today, BOOK_AHEAD_DAYS)) return { ok: false, reason: 'slot_taken' }
 
     const staff = (await this.list(br.id, 'staff')).map((r) => r.data as unknown as Staff)
@@ -686,7 +781,7 @@ class Api {
     else {
       customerId = crypto.randomUUID()
       const c: Customer = { id: customerId, branchId: br.id, name, phone }
-      stmts.push(this.put('customer', customerId, br.id, c as unknown as Data))
+      stmts.push(this.put('customer', customerId, br.id, c as unknown as Data, br.biz))
     }
     const id = crypto.randomUUID()
     const a: Appointment = {
@@ -709,7 +804,7 @@ class Api {
     }
     const token = randomToken(16)
     stmts.push(
-      this.put('appointment', id, br.id, a as unknown as Data),
+      this.put('appointment', id, br.id, a as unknown as Data, br.biz),
       this.db.prepare('INSERT INTO booking_tokens (appt_id, token) VALUES (?, ?)').bind(id, token),
       this.db.prepare('INSERT INTO attempts (key, ts) VALUES (?, ?)').bind(limitKey, Date.now()),
     )
@@ -725,7 +820,7 @@ class Api {
       const id = str(it?.id, 64)
       const tok = await this.db.prepare('SELECT token FROM booking_tokens WHERE appt_id = ?').bind(id).first<{ token: string }>()
       if (!tok || tok.token !== it?.token) continue
-      const r = await this.row('appointment', id)
+      const r = await this.row('appointment', id, br.biz)
       if (r && r.branchId === br.id) out.push(r.data as unknown as Appointment)
     }
     return out
@@ -745,11 +840,12 @@ class Api {
   }
 
   async cancel(slug: string, b: Record<string, unknown>) {
+    const br = await this.branchBySlug(slug)
     const [a] = await this.owned(slug, [{ id: b.id, token: b.token }])
     if (!a || (a.status !== 'pending_approval' && a.status !== 'booked')) return { ok: false }
     await this.db.batch([
       this.bump(),
-      this.put('appointment', a.id, a.branchId, { ...a, status: 'cancelled', cancelledByCustomer: true } as unknown as Data),
+      this.put('appointment', a.id, a.branchId, { ...a, status: 'cancelled', cancelledByCustomer: true } as unknown as Data, br.biz),
     ])
     return { ok: true }
   }

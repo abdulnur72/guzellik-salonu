@@ -25,6 +25,7 @@ export function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/subeler" element={<HomePage list />} />
         <Route path="/sahip" element={<OwnerPage />} />
+        <Route path="/sahip/:kod" element={<OwnerPage />} />
         <Route path="/s/:slug" element={<PanelPage />} />
         <Route path="/r/:slug" element={<BookingPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

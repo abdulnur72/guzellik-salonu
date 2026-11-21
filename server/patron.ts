@@ -2,7 +2,8 @@
 //
 // Sahip paneli, uygulamayı kiralayan dükkânların aboneliğini tutar.
 // Kendi PIN'i (secrets: 'platform') ve oturumu (sessions.role = 'platform')
-// vardır; salon kayıtlarını (rows) okumaz, değiştirmez.
+// vardır. Salon kayıtlarına (rows) yalnızca "Güzellik salonunu kur" ile yeni
+// salon açarken yazar; var olan salonun kayıtlarını değiştirmez.
 //
 // Kilit: kodu bir şubenin kısa adıyla aynı olan dükkânın süresi biterse
 // (bitiş günü geçince) ya da "Durdur" denirse o şubenin müşteri linki ve
@@ -10,6 +11,7 @@
 // ya da "Yeniden aç" denince bir sonraki istekte açılır.
 
 import type { D1Database, D1PreparedStatement } from '@cloudflare/workers-types'
+import { newSalonRows } from './salon'
 
 export class PatronError extends Error {
   constructor(
@@ -21,6 +23,7 @@ export class PatronError extends Error {
 }
 
 export const SEKTORLER = ['Güzellik Salonu', 'Bayan Kuaför', 'Berber', 'Spor Salonu', 'Halı Yıkama']
+const GUZELLIK = 'Güzellik Salonu'
 
 export interface Shop {
   id: string
@@ -34,6 +37,8 @@ export interface Shop {
   not: string
   isl: string
   kod: string
+  /** Güzellik salonu: panel PIN'siz açılır, yalnızca Yönetici sekmesi PIN ister (demo dükkânı için) */
+  acik?: boolean
 }
 export interface Payment {
   id: string
@@ -136,6 +141,18 @@ async function ownerWa(db: D1Database) {
   return r ? str((JSON.parse(r.data) as Ayar).wa, 30) : ''
 }
 
+/** Güzellik salonunun paneli PIN'siz mi (sahip panelinde açılır; abonelik açık olmalı) */
+export async function isOpenPanel(db: D1Database, branchSlug: string) {
+  const s = await shopByKod(db, branchSlug)
+  return !!s && s.sektor === GUZELLIK && !!s.acik && !isLocked(s)
+}
+
+/** Bu kısa ad başka sektörden bir dükkânın kodu mu (güzellik şubesi bu adı alamaz) */
+export async function slugUsedByOtherSector(db: D1Database, branchSlug: string) {
+  const s = await shopByKod(db, branchSlug)
+  return !!s && s.sektor !== GUZELLIK
+}
+
 /** Bu şube (kısa adıyla) kilitliyse bilgisi, değilse null */
 export async function lockOfSlug(db: D1Database, branchSlug: string): Promise<LockInfo | null> {
   const s = await shopByKod(db, branchSlug)
@@ -193,6 +210,8 @@ export async function handlePatron(req: Request, db: D1Database, path: string[])
     else if (a === 'berber-pin') await p.berberPin(b)
     else if (a === 'kuafor-pin') await p.kuaforPin(b)
     else if (a === 'spor-pin') await p.sporPin(b)
+    else if (a === 'guzellik-kur') await p.guzellikKur(b)
+    else if (a === 'acik') await p.acik(b)
     else throw new PatronError(404, 'not_found')
     return json(await p.state())
   } catch (e) {
@@ -330,12 +349,9 @@ class Patron {
 
   async state() {
     const { results: pays } = await this.db.prepare('SELECT data FROM plat_payments ORDER BY t DESC, rowid DESC').all<{ data: string }>()
-    // Uygulamada olup listede olmayan şubeler (örn. salonun sonradan açtığı şube)
-    const { results: br } = await this.db
-      .prepare("SELECT ix, data FROM rows WHERE kind = 'branch' AND deleted = 0 ORDER BY rowid")
-      .all<{ ix: string; data: string }>()
-    const biz = await this.db.prepare("SELECT data FROM rows WHERE kind = 'business' AND deleted = 0 LIMIT 1").first<{ data: string }>()
-    const bizName = biz ? str((JSON.parse(biz.data) as { name?: string }).name, 120) : ''
+    // Güzellik uygulamasındaki şubeler, her biri kendi salonunun adıyla
+    // (listede olmayanlar, örn. salonun sonradan açtığı şube, "listeye ekle" ile eklenir)
+    const br = await this.branchesWithSalon()
     return {
       today: trToday(),
       salonlar: await this.shops(),
@@ -350,10 +366,36 @@ class Patron {
       kuaforKurulu: (await this.db.prepare("SELECT key FROM secrets WHERE key LIKE 'kuafor:yon:%'").all<{ key: string }>()).results.map((r) => r.key.slice(11)),
       // Yönetici PIN'i belirlenmiş spor salonlarının kodları
       sporKurulu: (await this.db.prepare("SELECT key FROM secrets WHERE key LIKE 'spor:yon:%'").all<{ key: string }>()).results.map((r) => r.key.slice(9)),
+      // Uygulaması kurulmuş (şubesi olan) güzellik salonlarının kodları
+      guzellikKurulu: br.map((r) => r.ix),
       subeler: br.map((r) => {
         const d = JSON.parse(r.data) as { name?: string; phone?: string }
+        const bizName = r.bdata ? str((JSON.parse(r.bdata) as { name?: string }).name, 120) : ''
         return { kod: r.ix, ad: d.name && d.name !== 'Merkez' ? `${bizName} ${d.name}`.trim() : bizName || d.name || r.ix, tel: str(d.phone, 30) }
       }),
+    }
+  }
+
+  /** Güzellik şubeleri ve salonlarının işletme kaydı */
+  private async branchesWithSalon() {
+    try {
+      return (
+        await this.db
+          .prepare(
+            `SELECT r.ix AS ix, r.data AS data, b.data AS bdata FROM rows r
+               LEFT JOIN rows b ON b.kind = 'business' AND b.id = r.biz AND b.deleted = 0
+              WHERE r.kind = 'branch' AND r.deleted = 0 ORDER BY r.rowid`,
+          )
+          .all<{ ix: string; data: string; bdata: string | null }>()
+      ).results
+    } catch (e) {
+      // Çok dükkânlı güncelleme (0007) henüz uygulanmamış veritabanı: tek işletme
+      if (!String(e).includes('biz')) throw e
+      const { results } = await this.db
+        .prepare("SELECT ix, data FROM rows WHERE kind = 'branch' AND deleted = 0 ORDER BY rowid")
+        .all<{ ix: string; data: string }>()
+      const biz = await this.db.prepare("SELECT data FROM rows WHERE kind = 'business' AND deleted = 0 LIMIT 1").first<{ data: string }>()
+      return results.map((r) => ({ ...r, bdata: biz?.data ?? null }))
     }
   }
 
@@ -365,9 +407,15 @@ class Patron {
       .bind(s.id, s.kod, JSON.stringify(s))
   }
 
-  private async kodFree(kod: string, id: string) {
+  private async kodFree(kod: string, id: string, sektor?: string) {
     const r = await this.db.prepare('SELECT id FROM plat_shops WHERE kod = ?').bind(kod).first<{ id: string }>()
     if (r && r.id !== id) throw new PatronError(409, 'kod_taken')
+    // Başka sektörden dükkân, bir güzellik şubesinin kısa adını kod olarak alamaz
+    // (abonelik kilidi kodla bulunduğu için iki dükkân birbirini kilitlerdi)
+    if (sektor && sektor !== GUZELLIK) {
+      const br = await this.db.prepare("SELECT 1 AS x FROM rows WHERE kind = 'branch' AND ix = ? AND deleted = 0").bind(kod).first()
+      if (br) throw new PatronError(409, 'kod_taken')
+    }
   }
 
   private clean(b: Record<string, unknown>, old?: Shop): Shop {
@@ -388,19 +436,20 @@ class Patron {
       not: old ? old.not : '',
       isl: str(b.isl, 80),
       kod,
+      ...(old?.acik ? { acik: true } : {}),
     }
   }
 
   async addShop(b: Record<string, unknown>) {
     const s = this.clean({ ...b, bitis: addDay(trToday(), 14) })
-    await this.kodFree(s.kod, s.id)
+    await this.kodFree(s.kod, s.id, s.sektor)
     await this.putShop(s).run()
   }
 
   async saveShop(b: Record<string, unknown>) {
     const old = await this.shop(b.id)
     const s = this.clean(b, old)
-    await this.kodFree(s.kod, s.id)
+    await this.kodFree(s.kod, s.id, s.sektor)
     const stmts: D1PreparedStatement[] = [this.putShop(s)]
     if (s.ad !== old.ad) {
       // Eski ödemelerde de yeni ad görünsün
@@ -491,6 +540,7 @@ class Patron {
       s.deneme = !!x.deneme
       s.dur = !!x.dur
       s.not = str(x.not, 500)
+      if (x.acik === true && s.sektor === GUZELLIK) s.acik = true
       if (seen.has(s.kod) || seen.has('#' + s.id)) continue
       seen.add(s.kod)
       seen.add('#' + s.id)
@@ -545,6 +595,34 @@ class Patron {
     const s = await this.shop(b.id)
     if (s.sektor !== 'Spor Salonu') throw new PatronError(400, 'not_spor')
     await setSporPin(this.db, s, b.yon)
+  }
+
+  /**
+   * Güzellik salonunu kurar ya da PIN'lerini yeniler. Uygulamada şubesi yoksa
+   * salon (işletme + "Merkez" şubesi + hizmet listesi) açılır; sahip ve
+   * yönetici PIN'i ilk kurulumda zorunlu. Kuruluysa yalnızca yazılan PIN'ler
+   * değişir (unutulunca). Sahip PIN'i yalnızca bu salona aittir.
+   */
+  async guzellikKur(b: Record<string, unknown>) {
+    const s = await this.shop(b.id)
+    if (s.sektor !== GUZELLIK) throw new PatronError(400, 'not_guzellik')
+    await setupGuzellik(this.db, s, { sahip: b.sahip, yonetici: b.yonetici })
+  }
+
+  /** Güzellik salonunda PIN'siz paneli açar/kapatır */
+  async acik(b: Record<string, unknown>) {
+    const s = await this.shop(b.id)
+    if (s.sektor !== GUZELLIK) throw new PatronError(400, 'not_guzellik')
+    const next: Shop = { ...s }
+    if (s.acik) delete next.acik
+    else next.acik = true
+    const stmts = [this.putShop(next)]
+    // Kapatılınca PIN'siz açılmış oturumlar da kapanır
+    if (s.acik) {
+      const br = await this.db.prepare("SELECT id FROM rows WHERE kind = 'branch' AND ix = ? AND deleted = 0").bind(s.kod).first<{ id: string }>()
+      if (br) stmts.push(this.db.prepare("DELETE FROM sessions WHERE role = 'open' AND branch_id = ?").bind(br.id))
+    }
+    await this.db.batch(stmts)
   }
 
   async pin(b: Record<string, unknown>) {
@@ -616,6 +694,63 @@ export async function setSporPin(db: D1Database, s: Shop, yon: unknown) {
     // Eski PIN'le açılmış yönetici ve işletme oturumları kapanır
     db.prepare("DELETE FROM sessions WHERE branch_id = ? AND role IN ('spor_yon', 'spor_isl')").bind(s.kod),
   ])
+}
+
+// --- Güzellik salonu ---
+// Çok dükkânlı: her güzellik salonu kendi işletme kaydı (rows.biz), kendi kodu
+// (şubesinin kısa adı = dükkân kodu) ve kendi sahip PIN'iyle (owner:<işletme>) çalışır.
+export async function setupGuzellik(db: D1Database, s: Shop, pins: { sahip?: unknown; yonetici?: unknown }) {
+  const ok = (v: unknown): v is string => typeof v === 'string' && /^\d{4,8}$/.test(v)
+  const sahip = pins.sahip === undefined || pins.sahip === '' ? undefined : pins.sahip
+  const yon = pins.yonetici === undefined || pins.yonetici === '' ? undefined : pins.yonetici
+  if ((sahip !== undefined && !ok(sahip)) || (yon !== undefined && !ok(yon))) throw new PatronError(400, 'bad_pin')
+  const br = await db
+    .prepare("SELECT id, biz FROM rows WHERE kind = 'branch' AND ix = ? AND deleted = 0")
+    .bind(s.kod)
+    .first<{ id: string; biz: string }>()
+  const stmts: D1PreparedStatement[] = []
+  let biz: string
+  let branchId: string
+  if (br) {
+    if (!br.biz) throw new PatronError(409, 'not_migrated')
+    if (sahip === undefined && yon === undefined) throw new PatronError(400, 'bad_pin')
+    biz = br.biz
+    branchId = br.id
+  } else {
+    if (sahip === undefined || yon === undefined) throw new PatronError(400, 'bad_pin')
+    const created = newSalonRows(s)
+    biz = created.biz
+    branchId = created.branchId
+    stmts.push(db.prepare("UPDATE meta SET v = v + 1 WHERE k = 'seq'"))
+    for (const r of created.rows)
+      stmts.push(
+        db
+          .prepare(
+            `INSERT INTO rows (kind, id, branch_id, ix, data, seq, deleted, biz)
+             VALUES (?, ?, ?, ?, ?, (SELECT v FROM meta WHERE k = 'seq'), 0, ?)`,
+          )
+          .bind(r.kind, r.id, r.branchId, r.ix, JSON.stringify(r.data), biz),
+      )
+  }
+  // PIN'ler personel PIN'leriyle çakışamaz (personel o PIN'le sahip/yönetici olarak girebilirdi)
+  if (br) {
+    const { results: staff } = await db.prepare("SELECT id, branch_id FROM rows WHERE kind = 'staff' AND biz = ? AND deleted = 0").bind(biz).all<{ id: string; branch_id: string }>()
+    const hashes = async (ids: string[]) =>
+      ids.length ? (await db.prepare(`SELECT hash FROM secrets WHERE key IN (${ids.map(() => '?').join(',')})`).bind(...ids.map((i) => `staff:${i}`)).all<{ hash: string }>()).results : []
+    if (sahip !== undefined) for (const h of await hashes(staff.map((x) => x.id))) if (await checkPin(sahip, h.hash)) throw new PatronError(400, 'same_pin')
+    if (yon !== undefined) for (const h of await hashes(staff.filter((x) => x.branch_id === branchId).map((x) => x.id))) if (await checkPin(yon, h.hash)) throw new PatronError(400, 'same_pin')
+  }
+  if (sahip !== undefined) {
+    stmts.push(db.prepare('INSERT OR REPLACE INTO secrets (key, hash) VALUES (?, ?)').bind(`owner:${biz}`, await hashPin(sahip)))
+    // Eski PIN'le açılmış sahip oturumları kapanır
+    stmts.push(db.prepare("DELETE FROM sessions WHERE role = 'owner' AND biz = ?").bind(biz))
+  }
+  if (yon !== undefined) {
+    stmts.push(db.prepare('INSERT OR REPLACE INTO secrets (key, hash) VALUES (?, ?)').bind(`manager:${branchId}`, await hashPin(yon)))
+    stmts.push(db.prepare("DELETE FROM sessions WHERE role = 'manager' AND branch_id = ?").bind(branchId))
+  }
+  await db.batch(stmts)
+  return { biz, branchId }
 }
 
 function cleanPaketler(list: unknown[]): Paket[] {
