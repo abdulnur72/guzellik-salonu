@@ -2,6 +2,9 @@
 //   npx tsx scripts/seed.ts --owner-pin 123456 --manager-pin 654321 > seed.sql
 //   npx wrangler d1 execute guzellik-salonu --remote --file seed.sql
 // Veritabanında işletme zaten varsa SQL hata verir, hiçbir şey değişmez.
+// Çok dükkânlı yapı (0007_coklu_salon.sql uygulanmış olmalı): her satır salona
+// bağlanır (rows.biz = işletme kimliği), sahip PIN'i salona özel anahtarla
+// (owner:<işletme>) yazılır. Eski tek işletmeli kod için 'owner' anahtarı da yazılır.
 
 import { seedDemo } from '../src/core/data/demoStore'
 import { toRows } from '../src/core/data/rows'
@@ -28,15 +31,18 @@ main.branch.hours = 'Pazartesi–Cumartesi 09:00–20:00, Pazar kapalı'
 main.staff.push({ id: crypto.randomUUID(), branchId: main.branch.id, name: 'Zeynep', role: 'reception', commissionPct: 0, active: true })
 
 const q = (v: unknown) => (v === null || v === undefined ? 'NULL' : `'${String(v).replace(/'/g, "''")}'`)
+const biz = db.business.id
 const lines: string[] = ["UPDATE meta SET v = v + 1 WHERE k = 'seq';"]
 for (const r of toRows(db).values()) {
   const data = { ...r.data }
   if (r.kind === 'business') data.ownerPin = '•'
   if (r.kind === 'branch') data.managerPin = '•'
   lines.push(
-    `INSERT INTO rows (kind, id, branch_id, ix, data, seq) VALUES (${q(r.kind)}, ${q(r.id)}, ${q(r.branchId)}, ${q(ixOf(r.kind, data))}, ${q(JSON.stringify(data))}, (SELECT v FROM meta WHERE k = 'seq'));`,
+    `INSERT INTO rows (kind, id, branch_id, ix, data, seq, deleted, biz) VALUES (${q(r.kind)}, ${q(r.id)}, ${q(r.branchId)}, ${q(ixOf(r.kind, data))}, ${q(JSON.stringify(data))}, (SELECT v FROM meta WHERE k = 'seq'), 0, ${q(biz)});`,
   )
 }
-lines.push(`INSERT INTO secrets (key, hash) VALUES ('owner', ${q(await hashPin(ownerPin))});`)
+const ownerHash = await hashPin(ownerPin)
+lines.push(`INSERT INTO secrets (key, hash) VALUES (${q('owner:' + biz)}, ${q(ownerHash)});`)
+lines.push(`INSERT INTO secrets (key, hash) VALUES ('owner', ${q(ownerHash)});`)
 lines.push(`INSERT INTO secrets (key, hash) VALUES ('manager:${main.branch.id}', ${q(await hashPin(managerPin))});`)
 console.log(lines.join('\n'))
