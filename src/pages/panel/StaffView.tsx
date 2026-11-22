@@ -42,7 +42,7 @@ export function StaffView({ ctx }: { ctx: PanelCtx }) {
                 onChange={(id) => {
                   if (id === me?.id) return
                   if (ctx.session?.kind === 'staff') ctx.setSession(null)
-                  if (noPin) return void enterDirect(id)
+                  if (noPin && id) return void enterDirect(id)
                   setPicked(id)
                 }}
               />

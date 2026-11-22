@@ -420,7 +420,7 @@ class Api {
   }
 
   async login(b: Record<string, unknown>) {
-    const pin = b.pin
+    let pin = ''
     let key: string
     let sess: Omit<Sess, 'token'>
     let secretKey: string
@@ -460,7 +460,8 @@ class Api {
     const limitKey = `pin:${key}:${this.ip()}`
     if (!noPin) {
       await this.checkLimit([limitKey, `pin:${key}`])
-      if (!validPin(pin)) throw new HttpError(400, 'bad_pin')
+      if (!validPin(b.pin)) throw new HttpError(400, 'bad_pin')
+      pin = b.pin
     }
 
     const stmts: D1PreparedStatement[] = []
