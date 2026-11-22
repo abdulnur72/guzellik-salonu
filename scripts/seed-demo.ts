@@ -47,11 +47,13 @@ const services = salon.rows.filter((r) => r.kind === 'service' && !r.data.hidden
 const svc = (i: number) => services[(i * 7) % services.length].data as { id: string; name: string; durationMin: number; price: number }
 
 const uuid = () => crypto.randomUUID()
+// Ad alanına yalnızca kişinin adı yazılır; unvan (Uzman/Resepsiyon) role alanındadır.
+// Personel seçim kutucuğu dar olduğu için "Uzman Ayşe" gibi uzun ad "Uzman…" diye kesiliyordu.
 const staff: Staff[] = [
-  { id: uuid(), branchId, name: 'Uzman Ayşe', role: 'expert', commissionPct: 40, active: true, pin: '•' },
-  { id: uuid(), branchId, name: 'Uzman Zeynep', role: 'expert', commissionPct: 35, active: true },
-  { id: uuid(), branchId, name: 'Uzman Elif', role: 'expert', commissionPct: 40, active: true },
-  { id: uuid(), branchId, name: 'Resepsiyon Ece', role: 'reception', commissionPct: 0, active: true },
+  { id: uuid(), branchId, name: 'Ayşe', role: 'expert', commissionPct: 40, active: true, pin: '•' },
+  { id: uuid(), branchId, name: 'Zeynep', role: 'expert', commissionPct: 35, active: true },
+  { id: uuid(), branchId, name: 'Elif', role: 'expert', commissionPct: 40, active: true },
+  { id: uuid(), branchId, name: 'Ece', role: 'reception', commissionPct: 0, active: true },
 ]
 const experts = staff.filter((s) => s.role === 'expert')
 const customers: Customer[] = Array.from({ length: 8 }, (_, i) => ({

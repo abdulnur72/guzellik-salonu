@@ -356,7 +356,7 @@ test('Demo yükleme betiği: ayrı salon, PIN’siz panel, PIN 1234/5678, en az 
   expect(s.rows.some((r: any) => r.branchId === LILA_BR)).toBe(false)
   // Yönetici 1234, personel 5678
   expect((await call('login', { scope: 'branch', slug: 'guzellik-demo', as: 'manager', pin: '1234' })).d.token).toBeTruthy()
-  const ayse = s.rows.find((r: any) => r.kind === 'staff' && r.data.name === 'Uzman Ayşe')
+  const ayse = s.rows.find((r: any) => r.kind === 'staff' && r.data.name === 'Ayşe')
   expect((await call('login', { scope: 'branch', slug: 'guzellik-demo', as: 'staff', staffId: ayse.id, pin: '5678' })).d.token).toBeTruthy()
   expect((await call('public/b/guzellik-demo')).d.rows.find((r: any) => r.kind === 'business').data.name).toBe('Demo Güzellik Salonu')
   // İkinci kez çalıştırılırsa ilk satırda durur, hiçbir şey eklenmez
