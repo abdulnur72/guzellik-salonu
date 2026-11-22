@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { deleteAppointment, hasPackage, recordWalkIn } from '../../core/data/actions'
 import { changeStaffPin, loginError, loginStaff } from '../../core/data/auth'
+import { staffPinSkipped } from '../../core/demoShops'
+import { isDemo } from '../../core/data/mode'
 import { periodTotals } from '../../core/reports'
 import { addDays, monthStart, toClock } from '../../core/time'
 import type { Id, PaymentMethod } from '../../core/types'
@@ -14,6 +16,17 @@ export function StaffView({ ctx }: { ctx: PanelCtx }) {
   const [picked, setPicked] = useState<Id | null>(null)
   const me = currentStaff(ctx)
   const active = ctx.data.staff.filter((s) => s.active)
+  // Demo dükkânda personel PIN'siz girer: adına dokununca doğrudan giriş
+  const noPin = !isDemo && staffPinSkipped(ctx.branch.slug)
+  const [busy, setBusy] = useState(false)
+  const enterDirect = async (id: Id) => {
+    if (busy) return
+    setBusy(true)
+    const r = await loginStaff(ctx.branch, id, '')
+    setBusy(false)
+    if (!r.ok) return alert(loginError(r.reason))
+    ctx.setSession({ kind: 'staff', staffId: id, token: r.token })
+  }
 
   return (
     <>
@@ -29,6 +42,7 @@ export function StaffView({ ctx }: { ctx: PanelCtx }) {
                 onChange={(id) => {
                   if (id === me?.id) return
                   if (ctx.session?.kind === 'staff') ctx.setSession(null)
+                  if (noPin) return void enterDirect(id)
                   setPicked(id)
                 }}
               />
@@ -36,7 +50,7 @@ export function StaffView({ ctx }: { ctx: PanelCtx }) {
               <p className="mute">{t('staff.noStaffYet')}</p>
             )}
           </div>
-          {!me && picked && <PinCard key={picked} ctx={ctx} staffId={picked} onDone={() => setPicked(null)} />}
+          {!noPin && !me && picked && <PinCard key={picked} ctx={ctx} staffId={picked} onDone={() => setPicked(null)} />}
           {me && me.role === 'reception' && (
             <>
               <Strip>{t('staff.reception')}</Strip>
@@ -51,7 +65,7 @@ export function StaffView({ ctx }: { ctx: PanelCtx }) {
           <div>
             {me.role === 'expert' && <MyNumbers ctx={ctx} staffId={me.id} pct={me.commissionPct} />}
             <CustomersCard ctx={ctx} />
-            <ChangePinCard key={me.id} ctx={ctx} staffId={me.id} />
+            {!noPin && <ChangePinCard key={me.id} ctx={ctx} staffId={me.id} />}
             <button className="btn2 block" onClick={() => { ctx.setSession(null); setPicked(null) }}>
               {t('common.logout')}
             </button>

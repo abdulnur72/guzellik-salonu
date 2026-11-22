@@ -3,6 +3,7 @@
 
 import type { Branch, DemoDatabase, Id } from '../types'
 import { getDb, mutate } from './demoStore'
+import { staffPinSkipped } from '../demoShops'
 import { isDemo } from './mode'
 import { api, ApiError } from './remote'
 import { t } from '../../i18n'
@@ -73,6 +74,8 @@ export async function openPanel(slug: string): Promise<string | null> {
 
 /** PIN'i olmayan personelin ilk girişinde verilen PIN kaydedilir */
 export async function loginStaff(branch: Branch, staffId: Id, pin: string): Promise<LoginResult> {
+  // Demo dükkânda personel PIN'siz girer (sunucu da PIN'e bakmaz)
+  if (!isDemo && staffPinSkipped(branch.slug)) return server({ scope: 'branch', slug: branch.slug, as: 'staff', staffId })
   if (!validPin(pin)) return { ok: false, reason: 'bad_pin' }
   if (!isDemo) return server({ scope: 'branch', slug: branch.slug, as: 'staff', staffId, pin })
   const s = getDb().branches.find((b) => b.branch.id === branch.id)?.staff.find((x) => x.id === staffId)

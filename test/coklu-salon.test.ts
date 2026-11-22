@@ -233,6 +233,48 @@ test('Sahip PIN’i ve personel PIN çakışması yalnız kendi salonuna bakar',
   expect((await call('login', { scope: 'branch', slug: 'lila', as: 'staff', staffId: 'd-3', pin: '5678' })).s).toBe(404)
 })
 
+test('Demo dükkân (guzellik-demo): personel PIN’siz girer, yönetici yine PIN ister; Lila değişmez', async () => {
+  db.migrate('0007_coklu_salon.sql')
+  const pt = await patronToken()
+  await addDemo(pt)
+  const demoMgr = (await call('login', { scope: 'branch', slug: 'guzellik-demo', as: 'manager', pin: '1234' })).d.token
+  expect(demoMgr).toBeTruthy()
+  const br = (await call('sync', undefined, demoMgr)).d.rows.find((r: any) => r.kind === 'branch')
+  const st = (id: string, role: string, pin?: string) => ({ kind: 'staff', id, branchId: br.id, data: { id, branchId: br.id, name: 'Uzman ' + id, role, commissionPct: 40, active: true, ...(pin ? { pin } : {}) } })
+  expect((await call('write', { rows: [st('d-1', 'expert'), st('d-2', 'reception', '5678')] }, demoMgr)).d.ok).toBe(true)
+
+  // PIN'i olmayan ve PIN'i olan personel, PIN göndermeden (ya da yanlış PIN'le) girer
+  const a = (await call('login', { scope: 'branch', slug: 'guzellik-demo', as: 'staff', staffId: 'd-1' })).d
+  expect(a.token).toBeTruthy()
+  expect(a.role).toBe('expert')
+  expect(a.staffId).toBe('d-1')
+  const b = (await call('login', { scope: 'branch', slug: 'guzellik-demo', as: 'staff', staffId: 'd-2', pin: '0000' })).d
+  expect(b.token).toBeTruthy()
+  expect(b.role).toBe('reception')
+  // PIN'siz girişte PIN kaydedilmez
+  expect(db.raw.query("SELECT key FROM secrets WHERE key = 'staff:d-1'").get()).toBeNull()
+  // Personel oturumu yalnız kendi yetkisiyle çalışır (ciro/gider görmez)
+  const rows = (await call('sync', undefined, a.token)).d.rows
+  expect(rows.some((r: any) => r.kind === 'expense')).toBe(false)
+  // Pasif ya da başka salonun personeli yine giremez
+  expect((await call('login', { scope: 'branch', slug: 'guzellik-demo', as: 'staff', staffId: 'yok' })).s).toBe(404)
+  expect((await call('login', { scope: 'branch', slug: 'lila', as: 'staff', staffId: 'd-1' })).s).toBe(404)
+
+  // Yönetici: PIN'siz ya da yanlış PIN'le giremez, 1234 ile girer
+  expect((await call('login', { scope: 'branch', slug: 'guzellik-demo', as: 'manager' })).s).toBe(400)
+  expect((await call('login', { scope: 'branch', slug: 'guzellik-demo', as: 'manager', pin: '0000' })).s).toBe(403)
+  expect((await call('login', { scope: 'branch', slug: 'guzellik-demo', as: 'manager', pin: '1234' })).d.token).toBeTruthy()
+  // Sahip girişi de PIN ister
+  expect((await call('login', { scope: 'owner', slug: 'guzellik-demo' })).s).toBe(400)
+
+  // Lila (gerçek dükkân): personel PIN'siz ya da yanlış PIN'le giremez, doğru PIN'le girer
+  expect((await call('login', { scope: 'branch', slug: 'lila', as: 'staff', staffId: 'st-1' })).s).toBe(400)
+  expect((await call('login', { scope: 'branch', slug: 'lila', as: 'staff', staffId: 'st-1', pin: '9999' })).s).toBe(403)
+  expect((await call('login', { scope: 'branch', slug: 'lila', as: 'staff', staffId: 'st-1', pin: STAFF_PIN })).d.token).toBeTruthy()
+  // Lila'da PIN'i olmayan personel ilk girişte yine PIN belirler
+  expect((await call('login', { scope: 'branch', slug: 'lila', as: 'staff', staffId: 'st-2' })).s).toBe(400)
+})
+
 test('PIN’siz panel: yalnız açılan salonda, resepsiyon yetkisiyle; Yönetici yine PIN ister', async () => {
   db.migrate('0007_coklu_salon.sql')
   const pt = await patronToken()

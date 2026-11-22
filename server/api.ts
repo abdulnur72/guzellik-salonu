@@ -23,6 +23,7 @@ import { branchOf, KINDS, SECRET_MARK, type Kind, type Row } from '../src/core/d
 import { daySlots, freeStaff, MIN_BLOCK_MIN } from '../src/core/scheduling'
 import { addDays, businessToday, toMinutes, zonedParts } from '../src/core/time'
 import type { Appointment, Branch, Business, Customer, Service, Staff } from '../src/core/types'
+import { staffPinSkipped } from '../src/core/demoShops'
 import { ixOf, phoneKey } from './ixof'
 import { handlePatron, isOpenPanel, lockOfOwner, lockOfSlug, slugUsedByOtherSector, type LockInfo } from './patron'
 
@@ -424,6 +425,8 @@ class Api {
     let sess: Omit<Sess, 'token'>
     let secretKey: string
     let firstPin: { staff: Row } | null = null
+    // Demo dükkânda (src/core/demoShops.ts) personel PIN'siz girer; yönetici ve sahip yine PIN ister
+    let noPin = false
 
     if (b.scope === 'owner') {
       // Sahip girişi salon koduyla (/sahip/<kod>: şubelerinden birinin kısa adı).
@@ -449,16 +452,21 @@ class Api {
         key = `staff:${st.id}`
         secretKey = key
         sess = { role: d.role === 'reception' ? 'reception' : 'expert', branchId: br.id, staffId: st.id, biz: br.biz }
-        if (!d.pin) firstPin = { staff: st }
+        if (staffPinSkipped(String(br.data!.slug))) noPin = true
+        else if (!d.pin) firstPin = { staff: st }
       }
     }
 
     const limitKey = `pin:${key}:${this.ip()}`
-    await this.checkLimit([limitKey, `pin:${key}`])
-    if (!validPin(pin)) throw new HttpError(400, 'bad_pin')
+    if (!noPin) {
+      await this.checkLimit([limitKey, `pin:${key}`])
+      if (!validPin(pin)) throw new HttpError(400, 'bad_pin')
+    }
 
     const stmts: D1PreparedStatement[] = []
-    if (firstPin) {
+    if (noPin) {
+      // Demo dükkân personeli: PIN kontrolü yok, yalnızca oturum açılır
+    } else if (firstPin) {
       // Personelin ilk girişi: PIN'i kendisi belirler (yönetici/sahip PIN'iyle aynı olamaz)
       if (await this.staffPinClashes(firstPin.staff.branchId, sess.biz, pin)) await this.rejectClash([limitKey, `pin:${key}`])
       stmts.push(this.db.prepare('INSERT OR REPLACE INTO secrets (key, hash) VALUES (?, ?)').bind(secretKey, await hashPin(pin)))
