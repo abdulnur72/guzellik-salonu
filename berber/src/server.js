@@ -12,6 +12,10 @@ import { PNG_ICONS } from './icons.js'
 //   yon  yönetici (dükkân patronu): ciro, gider, net kâr, personel ve prim, ayarlar
 //   per  personel: yalnızca kendi müşterisi, kendi kaydı ve kendi payı
 //   isl  işletme sahibi: bütün şubelerin özeti, yeni şube (merkez şubenin yönetici PIN'i)
+//
+// Demo (tanıtım) dükkânı: DEMO_SHOPS listesindeki kodlarda personel PIN'siz girer (adına dokununca),
+// yönetici yine PIN ister; İşletme bölümü ve PIN değişiklikleri kapalıdır. Liste koddadır,
+// sahip panelinden değiştirilemez; gerçek dükkânlar buraya eklenmez.
 
 export const VARSAYILAN_HIZMET = [
   { ad: 'Saç kesimi', fiyat: 300 },
@@ -23,6 +27,8 @@ export const VARSAYILAN_HIZMET = [
 ]
 export const GIDER = ['Kira', 'Elektrik', 'Su', 'Doğalgaz', 'Malzeme (jilet, köpük, kolonya)', 'Personel maaşı', 'Çay / ikram', 'Bakım / tamir', 'Diğer']
 export const VARSAYILAN_PRIM = 40
+export const DEMO_SHOPS = Object.freeze(['berber-demo'])
+export const isDemo = (kod) => DEMO_SHOPS.includes(kod)
 const VARSAYILAN = { gunbas: '06:00', acilis: '09:00', kapanis: '22:00', aralik: 30 }
 const ODEME = ['nakit', 'kart']
 const ILERI_GUN = 30 // müşteri en fazla 30 gün sonrasına randevu alır
@@ -239,7 +245,10 @@ export async function handleApi(req, env) {
       throw new HttpError(402, 'locked', area === 'r' ? { ad: shop.ad, tel: shop.wa } : { ad: shop.ad, wa: await st.patronWa() })
     }
     if (area === 'r') return json(await customer(req, st, shop, rest[0], ip, url))
-    if (rest[0] === 'isl') return json(await isletme(req, st, shop, rest[1], url))
+    if (rest[0] === 'isl') {
+      if (isDemo(kod) || isDemo(shop.isl)) throw new HttpError(403, 'demo_closed')
+      return json(await isletme(req, st, shop, rest[1], url))
+    }
     return json(await panel(req, st, shop, plat, rest[0], ip, url))
   } catch (e) {
     if (e instanceof HttpError) return json({ error: e.message, ...(e.extra || {}) }, e.status)
@@ -382,7 +391,11 @@ async function session(st, req, roles) {
 }
 
 async function panel(req, st, shop, plat, action, ip, url) {
-  if (req.method === 'GET' && action === 'info') return { ad: shop.ad }
+  if (req.method === 'GET' && action === 'info') {
+    // Demo dükkânda giriş ekranı personel adlarını gösterir (PIN'siz giriş için)
+    if (isDemo(st.kod)) return { ad: shop.ad, demo: true, personel: aktifPer(shop).map((p) => ({ id: p.id, ad: p.ad })) }
+    return { ad: shop.ad }
+  }
   if (req.method === 'POST' && action === 'login') return login(st, shop, await readBody(req), ip)
   const s = await session(st, req, ['berber_yon', 'berber_per'])
   if (action === 'logout' && req.method === 'POST') {
@@ -404,8 +417,17 @@ async function panel(req, st, shop, plat, action, ip, url) {
 }
 
 async function login(st, shop, b, ip) {
-  const keys = [`berber:pin:${st.kod}:${ip}`, `berber:pin:${st.kod}`]
-  if ((await st.limited(keys[0], 8, 15 * 60_000)) || (await st.limited(keys[1], 40, 15 * 60_000))) throw new HttpError(429, 'too_many')
+  const demo = isDemo(st.kod)
+  if (demo && b.rol === 'isl') throw new HttpError(403, 'demo_closed')
+  // Demo personeli: PIN yok, adına dokununca girer
+  if (demo && b.rol === 'per') {
+    const p = aktifPer(shop).find((x) => x.id === str(b.per, 20))
+    if (!p) throw new HttpError(404, 'no_staff')
+    return openSession(st, 'per', st.kod, p.id)
+  }
+  // Demo dükkânda dükkân geneli yanlış PIN sınırı yok (ziyaretçiler birbirini kilitlemesin); kişi başı sınır var
+  const keys = demo ? [`berber:pin:${st.kod}:${ip}`] : [`berber:pin:${st.kod}:${ip}`, `berber:pin:${st.kod}`]
+  if ((await st.limited(keys[0], 8, 15 * 60_000)) || (keys[1] && (await st.limited(keys[1], 40, 15 * 60_000)))) throw new HttpError(429, 'too_many')
   const pin = b.pin
   let rol = null
   let per = null
@@ -419,7 +441,7 @@ async function login(st, shop, b, ip) {
       }
     } else {
       if (await checkPin(pin, await st.secret(`berber:yon:${st.kod}`))) rol = 'yon'
-      if (!rol && b.rol !== 'yon') {
+      if (!rol && b.rol !== 'yon' && !demo) {
         for (const p of aktifPer(shop)) {
           if (await checkPin(pin, await st.secret(`berber:per:${st.kod}:${p.id}`))) {
             rol = 'per'
@@ -434,6 +456,10 @@ async function login(st, shop, b, ip) {
     await st.db.batch(keys.map((k) => st.note(k)))
     throw new HttpError(403, 'wrong_pin')
   }
+  return openSession(st, rol, kod, per)
+}
+
+async function openSession(st, rol, kod, per) {
   const token = randomToken()
   const now = Date.now()
   await st.db.batch([
@@ -489,6 +515,7 @@ async function state(st, shop, plat, s) {
     randevular,
     kayitlar,
     sabit: { gider: GIDER, prim: VARSAYILAN_PRIM },
+    demo: isDemo(st.kod),
   }
   const n = (await st.db.prepare('SELECT COUNT(*) AS n FROM berber_shops WHERE isl = ?').bind(shop.isl).first()).n
   out.shop.cokSube = n > 1
@@ -670,10 +697,12 @@ async function write(st, shop, action, b, s) {
       if (aktifPer(shop).length >= 30) throw new HttpError(400, 'too_many_staff')
       const prim = Number.isFinite(primRaw) ? primRaw : VARSAYILAN_PRIM
       if (!(prim >= 0 && prim <= 100)) throw new HttpError(400, 'bad_rate')
-      if (!validPin(b.pin)) throw new HttpError(400, 'bad_pin')
-      await pinBos(st, shop, b.pin, '__yeni')
       const p = { id: uid().slice(0, 8), ad, prim: r2(prim), aktif: true }
       list.push(p)
+      // Demo dükkânda personel PIN'siz girer, PIN kaydedilmez
+      if (isDemo(st.kod)) return [st.putShop({ ...shop, personel: list })]
+      if (!validPin(b.pin)) throw new HttpError(400, 'bad_pin')
+      await pinBos(st, shop, b.pin, '__yeni')
       return [st.putShop({ ...shop, personel: list }), db.prepare('INSERT OR REPLACE INTO secrets (key, hash) VALUES (?, ?)').bind(`berber:per:${st.kod}:${p.id}`, await hashPin(b.pin))]
     }
     case 'personelsil': {
@@ -688,6 +717,7 @@ async function write(st, shop, action, b, s) {
       ]
     }
     case 'perpin': {
+      if (isDemo(st.kod)) throw new HttpError(403, 'demo_closed')
       // Yönetici personelin PIN'ini yeniler; personel kendi PIN'ini değiştirir
       const id = yon ? str(b.id, 20) : s.per
       if (!aktifPer(shop).some((p) => p.id === id)) throw new HttpError(404, 'no_staff')
@@ -700,6 +730,7 @@ async function write(st, shop, action, b, s) {
     }
     case 'pin': {
       needYon()
+      if (isDemo(st.kod)) throw new HttpError(403, 'demo_closed')
       if (!validPin(b.pin)) throw new HttpError(400, 'bad_pin')
       await pinBos(st, shop, b.pin, 'yon')
       return [

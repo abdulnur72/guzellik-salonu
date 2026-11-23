@@ -88,7 +88,7 @@ textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--seg);bord
 <script>
 'use strict';
 var P=location.pathname.split('/').filter(Boolean),AREA=P[0],KOD=String(P[1]||'').toLowerCase();
-var ERR={wrong_pin:'PIN yanlış.',too_many:'Çok fazla deneme yapıldı. Biraz sonra tekrar deneyin.',network:'İnternet bağlantısı zayıf ya da yok. Tekrar deneyin.',no_name:'Adı yazın.',bad_phone:'Telefonu 05xx xxx xx xx şeklinde yazın.',bad_date:'Tarih seçin.',past_date:'Geçmiş bir güne randevu alınamaz.',too_far:'En fazla 30 gün sonrasına randevu alınır.',bad_time:'Saat seçin.',sira_today:'Sıraya yalnızca bugün için girilir. Başka gün için saat seçin.',past_time:'Bu saat geçti. Başka bir saat seçin.',slot_taken:'Bu saat az önce doldu. Başka bir saat seçin.',too_many_same:'Bu telefonla o gün için zaten randevunuz var.',not_yours:'Bu kayıt size ait değil.',changed:'Bu kayıt başka bir telefondan değişti. Liste yenilendi.',yonetici:'Bu işlem için yönetici girişi gerekir.',bad_pin:'PIN 4-8 rakam olmalı.',same_pin_yon:'Bu PIN yönetici PIN’iyle aynı. Personel PIN’i yönetici PIN’inden farklı olmalı.',same_pin_per:'Bu PIN bir personelin PIN’iyle aynı. Başka bir PIN seçin.',same_pin_other:'Bu PIN başka bir personelde var. Başka bir PIN seçin.',no_staff:'Berberi seçin.',bad_payment:'Nakit ya da kart seçin.',bad_amount:'Tutarı sayı olarak yazın.',no_service:'Hizmeti seçin.',bad_services:'Her hizmet için ayrı bir ad ve fiyat yazın.',bad_rate:'Prim oranı 0 ile 100 arasında olmalı.',bad_step:'Randevu aralığını seçin.',too_many_staff:'En fazla 30 personel eklenebilir.',not_found_randevu:'Randevu bulunamadı. Liste yenilendi.',not_found_kayit:'Kayıt bulunamadı. Liste yenilendi.',kod_taken:'Bu link kodu kullanılıyor. Başka bir kod yazın.',bad_kod:'Link kodu en az 3 harf olmalı.',too_many_branches:'En fazla 20 şube açılabilir.',no_main:'Merkez şube bulunamadı.',server:'Bir sorun oldu. Tekrar deneyin.'};
+var ERR={demo_closed:'Bu bölüm demo dükkânda kapalı.',wrong_pin:'PIN yanlış.',too_many:'Çok fazla deneme yapıldı. Biraz sonra tekrar deneyin.',network:'İnternet bağlantısı zayıf ya da yok. Tekrar deneyin.',no_name:'Adı yazın.',bad_phone:'Telefonu 05xx xxx xx xx şeklinde yazın.',bad_date:'Tarih seçin.',past_date:'Geçmiş bir güne randevu alınamaz.',too_far:'En fazla 30 gün sonrasına randevu alınır.',bad_time:'Saat seçin.',sira_today:'Sıraya yalnızca bugün için girilir. Başka gün için saat seçin.',past_time:'Bu saat geçti. Başka bir saat seçin.',slot_taken:'Bu saat az önce doldu. Başka bir saat seçin.',too_many_same:'Bu telefonla o gün için zaten randevunuz var.',not_yours:'Bu kayıt size ait değil.',changed:'Bu kayıt başka bir telefondan değişti. Liste yenilendi.',yonetici:'Bu işlem için yönetici girişi gerekir.',bad_pin:'PIN 4-8 rakam olmalı.',same_pin_yon:'Bu PIN yönetici PIN’iyle aynı. Personel PIN’i yönetici PIN’inden farklı olmalı.',same_pin_per:'Bu PIN bir personelin PIN’iyle aynı. Başka bir PIN seçin.',same_pin_other:'Bu PIN başka bir personelde var. Başka bir PIN seçin.',no_staff:'Berberi seçin.',bad_payment:'Nakit ya da kart seçin.',bad_amount:'Tutarı sayı olarak yazın.',no_service:'Hizmeti seçin.',bad_services:'Her hizmet için ayrı bir ad ve fiyat yazın.',bad_rate:'Prim oranı 0 ile 100 arasında olmalı.',bad_step:'Randevu aralığını seçin.',too_many_staff:'En fazla 30 personel eklenebilir.',not_found_randevu:'Randevu bulunamadı. Liste yenilendi.',not_found_kayit:'Kayıt bulunamadı. Liste yenilendi.',kod_taken:'Bu link kodu kullanılıyor. Başka bir kod yazın.',bad_kod:'Link kodu en az 3 harf olmalı.',too_many_branches:'En fazla 20 şube açılabilir.',no_main:'Merkez şube bulunamadı.',server:'Bir sorun oldu. Tekrar deneyin.'};
 var GUNLER=['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
 function $(i){return document.getElementById(i)}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
@@ -224,7 +224,7 @@ async function cClick(t){
 }
 
 /* ================= DÜKKÂN PANELİ (/s/<kod>) ================= */
-var S=null,tab='',donem='gun',busy=false,tick=null,R={gun:'',form:false},K={hz:'',per:''},I=null,rapGun='';
+var INFO={},S=null,tab='',donem='gun',busy=false,tick=null,R={gun:'',form:false},K={hz:'',per:''},I=null,rapGun='';
 var TK='bb-tok-'+KOD,YTK='bb-ytok-'+KOD,ITK='bb-itok-'+KOD;
 function tok(){return sstore(YTK)||store(TK)}
 function yon(){return S&&S.rol=='yon'}
@@ -256,7 +256,13 @@ document.addEventListener('visibilitychange',function(){if(AREA=='s'&&!document.
 
 function girisEkrani(){
  stopTick();$('tabs').hidden=true;VIEW_RESET=true;
+ if(INFO.demo){paint('<div class="card"><h2>Personel girişi</h2><div class="sub">Demo dükkân: adınıza dokunun, PIN gerekmez.</div><div class="acts">'+(INFO.personel||[]).map(function(p){return '<button class="btn2 main" data-dper="'+esc(p.id)+'">'+esc(p.ad)+'</button>'}).join('')+'</div></div>'
+  +'<div class="card"><h2>Yönetici girişi</h2><div class="sub">Ciro, gider, personel payları ve ayarlar yönetici PIN’iyle açılır.</div><label for="gpin">Yönetici PIN’i</label><input id="gpin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" placeholder="••••"><button class="go" id="giris">Giriş yap</button></div>');return}
  paint('<div class="card"><h2>Giriş</h2><div class="sub">Personel kendi PIN’ini, yönetici yönetici PIN’ini yazar.</div><label for="gpin">PIN</label><input id="gpin" type="password" inputmode="numeric" autocomplete="current-password" maxlength="8" placeholder="••••"><button class="go" id="giris">Giriş yap</button></div>')}
+async function demoGiris(id){
+ var r=await api('login',{rol:'per',per:id});
+ if(r.status!=200){if(r.status==402){paint(kapali(r.d));return}toast(errText(r.d));return}
+ store(TK,r.d.token);tab='personel';S=null;await yenile(true);startTick()}
 async function giris(pin,rol){
  if(!/^\d{4,8}$/.test(pin)){toast('PIN 4-8 rakam olmalı');return}
  var r=await api('login',{pin:pin,rol:rol});
@@ -267,7 +273,7 @@ async function giris(pin,rol){
  if(r.d.rol=='yon'&&!rol)toast('Yönetici olarak girdiniz. Uygulama kapanınca PIN yeniden sorulur.')}
 
 var TABS=[['yonetici','Yönetici'],['personel','Personel'],['randevu','Randevu'],['isletme','İşletme'],['musteri','Müşteri']];
-function tabs(){var e=$('tabs');e.hidden=false;e.innerHTML=TABS.map(function(t){return '<button aria-pressed="'+(tab==t[0])+'" data-t="'+t[0]+'">'+t[1]+'</button>'}).join('')}
+function tabs(){var e=$('tabs');e.hidden=false;e.innerHTML=TABS.filter(function(t){return !(S&&S.demo&&t[0]=='isletme')}).map(function(t){return '<button aria-pressed="'+(tab==t[0])+'" data-t="'+t[0]+'">'+t[1]+'</button>'}).join('')}
 function aralikta(g){var b=S.gun;if(donem=='gun')return g==b;if(donem=='dun')return g==addD(b,-1);if(donem=='hafta')return g>=addD(b,-6)&&g<=b;return g.slice(0,7)==b.slice(0,7)}
 function donemBtn(){return '<div class="tabs" role="group" aria-label="Dönem">'+[['gun','Bugün'],['dun','Dün'],['hafta','7 gün'],['ay','Bu ay']].map(function(p){return '<button aria-pressed="'+(donem==p[0])+'" data-per="'+p[0]+'">'+p[1]+'</button>'}).join('')+'</div>'}
 function pay(k){return Math.round(k.tutar*(k.prim||0))/100}
@@ -291,7 +297,7 @@ function vPersonel(){
   h+='<div class="stats"><div class="stat"><span>Bugün payım</span><b>'+fmt(o1.prim)+'</b></div><div class="stat"><span>Bugün hizmet</span><b>'+o1.n+'</b></div><div class="stat"><span>Son 7 gün payım</span><b>'+fmt(o7.prim)+'</b></div><div class="stat"><span>Bu ay payım</span><b>'+fmt(oa.prim)+'</b></div></div>'
   +'<div class="sub" style="margin:-4px 0 12px">Prim oranınız: %'+(p.prim!=null?p.prim:S.sabit.prim)+'. Pay, yaptığınız hizmetlerin tutarından hesaplanır.</div>'}
  h+='<div class="card"><h2>'+(yon()?esc(p.ad||'')+' · bugünkü işler':'Bugünkü işlerim')+'</h2><div class="sub">İş günü '+esc(S.shop.gunbas)+'’da başlar. Yanlış kaydı “Sil” ile kaldırın.</div>'+(bugun.length?'<ul class="list" style="margin-top:6px">'+bugun.map(function(k){return kayitLi(k,true)}).join('')+'</ul>':'<div class="empty">Bugün henüz kayıt yok.</div>')+'</div>';
- if(!yon())h+='<div class="card"><h2>PIN’imi değiştir</h2><div class="sub">Yeni PIN yönetici PIN’inden ve diğer personelinkinden farklı olmalı.</div><div class="row" style="margin-top:8px"><input id="bpin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="Yeni PIN (4-8 rakam)"><button class="btn2 main" id="bpinkay" style="flex:0 0 auto">Kaydet</button></div><button class="btn2" id="cikis" style="width:100%;margin-top:12px">Bu telefondan çıkış yap</button></div>';
+ if(!yon()&&!S.demo)h+='<div class="card"><h2>PIN’imi değiştir</h2><div class="sub">Yeni PIN yönetici PIN’inden ve diğer personelinkinden farklı olmalı.</div><div class="row" style="margin-top:8px"><input id="bpin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="Yeni PIN (4-8 rakam)"><button class="btn2 main" id="bpinkay" style="flex:0 0 auto">Kaydet</button></div><button class="btn2" id="cikis" style="width:100%;margin-top:12px">Bu telefondan çıkış yap</button></div>';
  return h}
 
 /* ---- Randevu sekmesi ---- */
@@ -345,8 +351,8 @@ function vYonetici(){
  +(gl.length?'<ul class="list" style="margin-top:10px">'+gl.map(function(x){return '<li><span>'+esc(x.tur)+(x.not?' · '+esc(x.not):'')+'<div class="sub">'+fd(x.gun)+'</div></span><span>'+fmt(x.tutar)+'<button class="btn2 sm" data-gsil="'+esc(x.id)+'">Sil</button></span></li>'}).join('')+'</ul>':'<div class="empty" style="margin-top:8px">Bu dönemde gider yok.</div>')+'</div>';
  // Personel yönetimi
  h+='<div class="card"><h2>Personel ve prim oranları</h2><div class="sub">Her personelin oranı ayrı. Yeni personel %'+S.sabit.prim+' ile başlar. Personel PIN’i yönetici PIN’inden ve birbirinden farklı olmalı.</div>'
- +aktif().map(function(p){return '<div style="border-top:1px solid var(--line);margin-top:10px;padding-top:8px"><div class="row"><input id="pad'+p.id+'" data-fresh value="'+esc(p.ad)+'" aria-label="Ad" style="flex:2"><input id="ppr'+p.id+'" data-fresh inputmode="decimal" value="'+p.prim+'" aria-label="Prim oranı yüzde" style="flex:0 0 76px"><span style="flex:0 0 auto;align-self:center">%</span></div>'+(p.prim==0?'<div class="sub" style="color:var(--bad)">%0: bu personele pay hesaplanmaz.</div>':'')+'<div class="acts"><button class="btn2 main" data-pkay="'+p.id+'">Kaydet</button><button class="btn2" data-ppin="'+p.id+'">PIN yenile</button><button class="btn2 bad" data-pcik="'+p.id+'">Çıkar</button></div><div id="ppw'+p.id+'"></div></div>'}).join('')
- +'<div style="border-top:1px solid var(--line);margin-top:12px;padding-top:4px"><b>Yeni personel</b><div class="row"><div style="flex:2"><label for="yad">Ad</label><input id="yad" placeholder="Örn. Ahmet"></div><div><label for="ypr">Prim %</label><input id="ypr" inputmode="decimal" placeholder="'+S.sabit.prim+'"></div></div><label for="yppin">PIN (personel bununla girer)</label><input id="yppin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="4-8 rakam"><button class="go" id="pekle">Personeli ekle</button></div></div>';
+ +aktif().map(function(p){return '<div style="border-top:1px solid var(--line);margin-top:10px;padding-top:8px"><div class="row"><input id="pad'+p.id+'" data-fresh value="'+esc(p.ad)+'" aria-label="Ad" style="flex:2"><input id="ppr'+p.id+'" data-fresh inputmode="decimal" value="'+p.prim+'" aria-label="Prim oranı yüzde" style="flex:0 0 76px"><span style="flex:0 0 auto;align-self:center">%</span></div>'+(p.prim==0?'<div class="sub" style="color:var(--bad)">%0: bu personele pay hesaplanmaz.</div>':'')+'<div class="acts"><button class="btn2 main" data-pkay="'+p.id+'">Kaydet</button>'+(S.demo?'':'<button class="btn2" data-ppin="'+p.id+'">PIN yenile</button>')+'<button class="btn2 bad" data-pcik="'+p.id+'">Çıkar</button></div><div id="ppw'+p.id+'"></div></div>'}).join('')
+ +'<div style="border-top:1px solid var(--line);margin-top:12px;padding-top:4px"><b>Yeni personel</b><div class="row"><div style="flex:2"><label for="yad">Ad</label><input id="yad" placeholder="Örn. Ahmet"></div><div><label for="ypr">Prim %</label><input id="ypr" inputmode="decimal" placeholder="'+S.sabit.prim+'"></div></div>'+(S.demo?'<div class="sub">Demo dükkânda personel PIN’siz girer.</div>':'<label for="yppin">PIN (personel bununla girer)</label><input id="yppin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="4-8 rakam">')+'<button class="go" id="pekle">Personeli ekle</button></div></div>';
  // Hizmetler
  h+='<div class="card"><h2>Hizmetler ve fiyatlar</h2><div class="sub">Hızlı kayıt düğmeleri ve randevu formu bu listeden gelir.</div>'+sh.hizmetler.map(function(x,i){return '<div class="row" style="margin-top:8px"><input id="had'+i+'" data-fresh value="'+esc(x.ad)+'" aria-label="Hizmet adı" style="flex:2"><input id="hfi'+i+'" data-fresh inputmode="decimal" value="'+x.fiyat+'" aria-label="Fiyat TL"><button class="btn2" data-hsil="'+i+'" style="flex:0 0 auto">Sil</button></div>'}).join('')+'<div class="acts"><button class="btn2" id="hekle">+ Hizmet ekle</button><button class="btn2 main" id="hkay">Hizmetleri kaydet</button></div></div>';
  // Saatler
@@ -354,7 +360,7 @@ function vYonetici(){
  h+='<div class="card"><h2>Çalışma saatleri</h2><div class="row"><div><label for="sacil">Açılış</label><input id="sacil" type="time" data-fresh value="'+sh.acilis+'"></div><div><label for="skap">Kapanış</label><input id="skap" type="time" data-fresh value="'+sh.kapanis+'"></div></div><div><label for="sara">Randevu aralığı</label><select id="sara" data-fresh>'+ar+'</select></div><label for="sgb">İş günü başlangıcı</label><input id="sgb" type="time" data-fresh value="'+sh.gunbas+'"><div class="sub">Ciro ve sıra numaraları bu saatte yeni güne geçer (varsayılan 06:00). Gece yarısından sonra çalışıyorsanız gece vardiyası bölünmez; örneğin kapanış 02:00 olabilir.</div><button class="go" id="skay">Saatleri kaydet</button></div>';
  // İşletme bilgileri
  h+='<div class="card"><h2>Dükkân bilgileri</h2><label for="iad">Dükkân adı</label><input id="iad" data-fresh value="'+esc(sh.ad)+'"><label for="iwa">WhatsApp numarası (müşteri randevudan sonra buraya haber verir)</label><input id="iwa" data-fresh type="tel" inputmode="tel" value="'+esc(sh.wa)+'" placeholder="05xx xxx xx xx"><label for="iadr">Adres (randevu sayfasında görünür)</label><input id="iadr" data-fresh value="'+esc(sh.adres)+'"><button class="go" id="ikay">Bilgileri kaydet</button></div>'
- +'<div class="card"><h2>Yönetici PIN’i</h2><div class="sub">Personel PIN’lerinden farklı olmalı. Değişince diğer telefonlardaki yönetici oturumları kapanır.'+(sh.merkez&&sh.cokSube?' Bu PIN İşletme panelinin de PIN’idir.':'')+'</div><div class="row" style="margin-top:8px"><input id="ynpin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="Yeni PIN (4-8 rakam)"><button class="btn2 main" id="ynkay" style="flex:0 0 auto">Kaydet</button></div></div>'
+ +(S.demo?'<div class="card"><h2>Yönetici PIN’i</h2><div class="sub">Demo dükkânda PIN değiştirilemez.</div></div>':''+'<div class="card"><h2>Yönetici PIN’i</h2><div class="sub">Personel PIN’lerinden farklı olmalı. Değişince diğer telefonlardaki yönetici oturumları kapanır.'+(sh.merkez&&sh.cokSube?' Bu PIN İşletme panelinin de PIN’idir.':'')+'</div><div class="row" style="margin-top:8px"><input id="ynpin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="Yeni PIN (4-8 rakam)"><button class="btn2 main" id="ynkay" style="flex:0 0 auto">Kaydet</button></div></div>')
  +'<div class="card"><h2>Yedek</h2><div class="sub">Kayıtlar sunucuda güvende. İsterseniz son iki ayın kopyasını indirin.</div><button class="btn2" id="yedek" style="margin-top:8px">Yedeği indir</button></div>'
  +'<button class="btn2" id="kilit" style="width:100%">Yönetici bölümünü kilitle</button>';
  return h}
@@ -404,6 +410,7 @@ function vMusteri(){
 function ciz(){
  if(!S)return;if(!tab)tab=yon()?'yonetici':'personel';
  setHead(S.shop.ad,'Berberim · '+(yon()?'Yönetici':(perAd(S.me)||'Personel')));tabs();
+ if(S.demo&&tab=='isletme')tab='personel';
  paint(tab=='yonetici'?vYonetici():tab=='personel'?vPersonel():tab=='randevu'?vRandevu():tab=='isletme'?vIsletme():vMusteri())}
 function kopya(el,ok){var f=function(){el.focus();el.select();toast('Metni seçtik. Kopyala’ya dokunun.')};try{navigator.clipboard.writeText(el.value).then(function(){toast(ok)},f)}catch(e){f()}}
 function indir(ad,icerik,tip){var b=new Blob([icerik],{type:tip}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=ad;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},5000)}
@@ -411,7 +418,7 @@ async function pStart(){
  addManifest();
  var r=await api('info');
  if(r.status!=200){paint(genelHata(r.status,r.d));if(r.d.ad)setHead(r.d.ad);return}
- setHead(r.d.ad,'Berberim · Panel','');
+ INFO=r.d;setHead(r.d.ad,'Berberim · Panel','');
  if(!tok()){girisEkrani();return}
  await yenile(true);startTick()}
 function hizOku(){return S.shop.hizmetler.map(function(x,i){return{ad:$('had'+i)?$('had'+i).value.trim():x.ad,fiyat:$('hfi'+i)?sayi($('hfi'+i).value):x.fiyat}})}
@@ -419,7 +426,8 @@ function emin(t,m){if(t.getAttribute('data-emin')=='1')return true;t.setAttribut
 
 async function pClick(t){
  var d=function(k){return t.getAttribute(k)},id=t.id;
- if(id=='giris'){await giris($('gpin').value.trim());return}
+ if(d('data-dper')){await demoGiris(d('data-dper'));return}
+ if(id=='giris'){await giris($('gpin').value.trim(),INFO.demo?'yon':undefined);return}
  if(id=='ygiris'){await giris($('ypin').value.trim(),'yon');return}
  if(!S)return;
  if(d('data-t')){tab=d('data-t');VIEW_RESET=true;ciz();window.scrollTo(0,0);if(tab=='isletme')islYukle();return}
@@ -451,7 +459,7 @@ async function pClick(t){
  if(d('data-ppin')){var pp=d('data-ppin');$('ppw'+pp).innerHTML='<div class="row" style="margin-top:8px"><input id="ppn'+pp+'" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" placeholder="Yeni PIN"><button class="btn2 main" data-ppk="'+pp+'" style="flex:0 0 auto">PIN’i kaydet</button></div>';$('ppn'+pp).focus();return}
  if(d('data-ppk')){var pk=d('data-ppk'),pv=$('ppn'+pk).value;if(!/^\d{4,8}$/.test(pv)){toast('PIN 4-8 rakam olmalı');return}if(await call('perpin',{id:pk,pin:pv})){ciz();toast(perAd(pk)+': PIN yenilendi')}return}
  if(d('data-pcik')){if(!emin(t,'Çıkarılsın mı? Evet'))return;var pc=d('data-pcik'),pa=perAd(pc);if(await call('personelsil',{id:pc})){ciz();toast(pa+' çıkarıldı. Geçmiş kayıtları durur.')}return}
- if(id=='pekle'){var ya=$('yad').value.trim(),yp=$('ypr').value.trim(),ypn=$('yppin').value;if(!ya){toast('Personelin adını yazın');return}if(yp!==''&&!(sayi(yp)>=0&&sayi(yp)<=100)){toast(ERR.bad_rate);return}if(!/^\d{4,8}$/.test(ypn)){toast('Personele 4-8 rakamlı bir PIN verin');return}
+ if(id=='pekle'){var ya=$('yad').value.trim(),yp=$('ypr').value.trim(),ypn=$('yppin')?$('yppin').value:'';if(!ya){toast('Personelin adını yazın');return}if(yp!==''&&!(sayi(yp)>=0&&sayi(yp)<=100)){toast(ERR.bad_rate);return}if(!S.demo&&!/^\d{4,8}$/.test(ypn)){toast('Personele 4-8 rakamlı bir PIN verin');return}
   if(await call('personel',{ad:ya,prim:yp===''?undefined:sayi(yp),pin:ypn})){VIEW_RESET=true;ciz();toast(ya+' eklendi · prim %'+(yp===''?S.sabit.prim:sayi(yp)))}return}
  if(id=='hekle'||d('data-hsil')!==null){var hl=hizOku();if(id=='hekle')hl.push({ad:'',fiyat:''});else{if(hl.length<2){toast('En az bir hizmet kalmalı');return}hl.splice(+d('data-hsil'),1)}S.shop.hizmetler=hl;VIEW_RESET=true;ciz();return}
  if(id=='hkay'){var h2=hizOku();if(h2.some(function(x){return !x.ad||!(x.fiyat>0)})){toast('Her hizmet için ad ve fiyat yazın');return}if(await call('ayar',{hizmetler:h2})){VIEW_RESET=true;ciz();toast('Hizmetler kaydedildi')}return}
