@@ -297,3 +297,22 @@ test('çok şubeli işletme: merkez PIN ile giriş, yeni şube, ilave şube sahi
   expect((await J(await req('/api/s/fatih-berber-kadikoy/isl/ozet', undefined, isl2.token))).d.subeler.length).toBe(2)
   expect((await J(await req('/api/s/fatih-berber-kadikoy/login', { pin: '8888', rol: 'isl' }))).d.error).toBe('wrong_pin')
 })
+
+test('ana ekran simgesi: manifest PNG simgeleri gösterir, PNG dosyaları sunulur', async () => {
+  for (const area of ['s', 'r']) {
+    const m = await (await req(`/${area}/${KOD}/app.webmanifest`)).json()
+    expect(m.icons.map((i) => `${i.src} ${i.sizes} ${i.purpose}`)).toEqual([
+      '/icon-192.png 192x192 any', '/icon-512.png 512x512 any',
+      '/icon-192-maskable.png 192x192 maskable', '/icon-512-maskable.png 512x512 maskable',
+    ])
+  }
+  for (const [p, size] of [['/icon-192.png', 192], ['/icon-512.png', 512], ['/icon-192-maskable.png', 192], ['/icon-512-maskable.png', 512]]) {
+    const r = await req(p)
+    expect(r.status).toBe(200)
+    expect(r.headers.get('content-type')).toBe('image/png')
+    const b = new Uint8Array(await r.arrayBuffer())
+    expect([...b.slice(1, 4)].map((c) => String.fromCharCode(c)).join('')).toBe('PNG')
+    const dv = new DataView(b.buffer)
+    expect([dv.getUint32(16), dv.getUint32(20)]).toEqual([size, size])
+  }
+})
