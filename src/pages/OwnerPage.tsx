@@ -9,6 +9,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { addBranch, monthlyFee, updateBusiness } from '../core/data/actions'
 import { loginError, loginOwner, logout, ownerPinClashes } from '../core/data/auth'
 import { useDb } from '../core/data/demoStore'
+import { ownerViaManagerPin } from '../core/demoShops'
 import { isDemo } from '../core/data/mode'
 import { disconnect, onAuthLost, onError, useConnection, useIndex } from '../core/data/remote'
 import { expensesTotal, periodTotals } from '../core/reports'
@@ -103,6 +104,8 @@ function OwnerLogin({ kod, onLogin }: { kod: string; onLogin: (token: string) =>
   if (idx === 'error') return <LoadState state="missing" />
   const [pin, setPin] = useState('')
   const [busy, setBusy] = useState(false)
+  // Demo dükkânda İşletme sekmesi yönetici PIN'iyle açılır
+  const viaManager = !isDemo && typeof idx === 'object' && idx.branches.some((b) => ownerViaManagerPin(b.slug))
   return (
     <div className="wrap narrow">
       <SalonHeader business={{ name: typeof idx === 'object' ? idx.business.name : '' }} />
@@ -117,7 +120,7 @@ function OwnerLogin({ kod, onLogin }: { kod: string; onLogin: (token: string) =>
         else alert(loginError(r.reason))
       }}>
         <h2>{t('owner.loginTitle')}</h2>
-        <p className="mute" style={{ margin: '0 0 8px' }}>{t('owner.loginInfo')}{isDemo && ' ' + t('common.demoPin')}</p>
+        <p className="mute" style={{ margin: '0 0 8px' }}>{viaManager ? t('owner.loginInfoDemo') : t('owner.loginInfo')}{isDemo && ' ' + t('common.demoPin')}</p>
         <label htmlFor="opin">PIN</label>
         <input id="opin" type="password" inputMode="numeric" maxLength={8} autoComplete="off" value={pin} onChange={(e) => setPin(e.target.value)} />
         <button className="go" disabled={busy}>{t('common.enter')}</button>
@@ -138,6 +141,8 @@ function OwnerPanel({ token, setSession }: { token: string; setSession: (v: stri
   useEffect(() => setOwner((o) => ({ ...o, ownerName: db.business.ownerName })), [db.business.ownerName])
   if (conn !== 'ready' || !db.branches.length) return <LoadState state={conn === 'ready' ? 'loading' : conn} />
   const first = db.branches[0].branch
+  // Demo dükkân: sahip PIN'ini değiştirmek ve şube eklemek kapalı (sunucu da reddeder)
+  const demoLocked = !isDemo && db.branches.some((b) => ownerViaManagerPin(b.branch.slug))
 
   const rows = db.branches.map((d) => {
     const today = businessToday(new Date(), db.business.timeZone, d.branch.dayCutoffHour)
@@ -194,13 +199,13 @@ function OwnerPanel({ token, setSession }: { token: string; setSession: (v: stri
               ))}
             </ul>
           </div>
-          <div className="card">
+          {!demoLocked && <div className="card">
             <h2>{t('home.addBranch')}</h2>
             <label htmlFor="sbn">{t('home.branchName')}</label>
             <input id="sbn" value={name} onChange={(e) => setName(e.target.value)} placeholder="Örn. Kadıköy" />
             <button className="go" onClick={() => { if (name.trim()) { addBranch(name); setName('') } }}>{t('home.addBranch')}</button>
             <p className="mute small">{t('home.branchHint')}</p>
-          </div>
+          </div>}
         </div>
         <div>
           <div className="card">
@@ -222,6 +227,7 @@ function OwnerPanel({ token, setSession }: { token: string; setSession: (v: stri
             <button className="btn2" style={{ marginTop: 10 }} onClick={() => { updateBusiness({ ownerName: owner.ownerName.trim() }); setMsg(t('mgr.saved')) }}>
               {t('common.save')}
             </button>
+            {demoLocked ? <p className="mute small">{t('owner.demoLocked')}</p> : <>
             <label htmlFor="onp">{t('owner.newPin')}</label>
             <input id="onp" type="password" inputMode="numeric" maxLength={8} value={owner.pin} onChange={(e) => setOwner({ ...owner, pin: e.target.value })} />
             <button className="btn2" style={{ marginTop: 10 }} onClick={() => {
@@ -231,6 +237,7 @@ function OwnerPanel({ token, setSession }: { token: string; setSession: (v: stri
               setOwner({ ...owner, pin: '' })
               setMsg(t('mgr.pinChanged'))
             }}>{t('mgr.changePin')}</button>
+            </>}
           </div>
           <button className="btn2 block" onClick={() => setSession(null)}>{t('common.logout')}</button>
         </div>

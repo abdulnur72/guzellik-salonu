@@ -23,7 +23,7 @@ import { branchOf, KINDS, SECRET_MARK, type Kind, type Row } from '../src/core/d
 import { daySlots, freeStaff, MIN_BLOCK_MIN } from '../src/core/scheduling'
 import { addDays, businessToday, toMinutes, zonedParts } from '../src/core/time'
 import type { Appointment, Branch, Business, Customer, Service, Staff } from '../src/core/types'
-import { staffPinSkipped } from '../src/core/demoShops'
+import { DEMO_SHOPS, ownerViaManagerPin, staffPinSkipped } from '../src/core/demoShops'
 import { ixOf, phoneKey } from './ixof'
 import { handlePatron, isOpenPanel, lockOfOwner, lockOfSlug, slugUsedByOtherSector, type LockInfo } from './patron'
 
@@ -253,6 +253,19 @@ class Api {
     return { ...toRow(r), biz: r.biz }
   }
 
+  /**
+   * İşletme demo dükkân mı (src/core/demoShops.ts)? Öyleyse demo şubesinin kimliği:
+   * İşletme sekmesi bu şubenin yönetici PIN'iyle açılır. Gerçek dükkânlarda null.
+   */
+  private async demoBranchOf(biz: string): Promise<string | null> {
+    if (!DEMO_SHOPS.length) return null
+    const r = await this.db
+      .prepare(`SELECT id, ix FROM rows WHERE kind = 'branch' AND biz = ? AND deleted = 0 AND ix IN (${DEMO_SHOPS.map(() => '?').join(',')}) ORDER BY rowid LIMIT 1`)
+      .bind(biz, ...DEMO_SHOPS)
+      .first<{ id: string; ix: string }>()
+    return r && ownerViaManagerPin(r.ix) ? r.id : null
+  }
+
   private async list(branchId: string, kind: Kind, ix?: string) {
     const q = ix === undefined
       ? this.db.prepare('SELECT * FROM rows WHERE branch_id = ? AND kind = ? AND deleted = 0 ORDER BY rowid').bind(branchId, kind)
@@ -435,7 +448,9 @@ class Api {
       const biz = kod ? (await this.branchBySlug(kod)).biz : await this.defaultBiz()
       await this.business(biz)
       key = `owner:${biz}`
-      secretKey = key
+      // Demo dükkânda İşletme sekmesi sahip PIN'i yerine yönetici PIN'iyle açılır
+      const demoBranch = await this.demoBranchOf(biz)
+      secretKey = demoBranch ? `manager:${demoBranch}` : key
       sess = { role: 'owner', branchId: null, staffId: null, biz }
       await this.checkSessionLock('owner', null, biz)
     } else {
@@ -587,6 +602,8 @@ class Api {
       .bind(s.biz)
       .all<{ id: string }>()
     const ownBranch = new Set(myBranches.map((x) => x.id))
+    // Demo dükkân: sahip PIN'i değiştirilemez, şube eklenemez (görüntüleme açık)
+    const demoLocked = (await this.demoBranchOf(s.biz)) !== null
 
     for (let i = 0; i < incoming.length; i++) {
       const r = incoming[i]
@@ -612,6 +629,7 @@ class Api {
       if (r.kind === 'branch') {
         if (old) data.slug = oldData!.slug
         else {
+          if (demoLocked) throw new HttpError(403, 'demo_locked')
           if (data.businessId !== biz.id || typeof data.slug !== 'string' || !/^[a-z0-9-]{1,60}$/.test(data.slug))
             throw new HttpError(400, 'bad_branch')
           // Kısa ad bütün salonlarda tek olmalı (linkler /s/<kısa ad>); başka sektörün
@@ -638,6 +656,7 @@ class Api {
         const key = keyOf(r.id)
         const canSet =
           s.role === 'owner' || (s.role === 'manager' && r.kind !== 'business')
+        if (demoLocked && r.kind === 'business' && v !== undefined && v !== SECRET_MARK && v !== null) throw new HttpError(403, 'demo_locked')
         if (v === undefined || v === SECRET_MARK || v === null) {
           if (oldData?.[field]) data[field] = SECRET_MARK
           else delete data[field]

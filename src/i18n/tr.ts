@@ -277,6 +277,8 @@ export const tr = {
   'owner.link': 'Sahip paneli',
   'owner.loginTitle': 'İşletme sahibi girişi',
   'owner.loginInfo': 'Tüm şubelerin cirosu yalnızca işletme sahibine açıktır. Şube yöneticisi yalnızca kendi şubesini görür.',
+  'owner.loginInfoDemo': 'Demo salon: İşletme bölümüne yönetici PIN’iyle girilir.',
+  'owner.demoLocked': 'Demo salonda sahip PIN’i değiştirilemez ve şube eklenemez.',
   'owner.strip': 'İşletme paneli • Tüm şubeler yalnızca sende',
   'owner.totalRevenue': 'Toplam ciro (ay)',
   'owner.totalNet': 'Toplam net kâr',

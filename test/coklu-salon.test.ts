@@ -14,6 +14,8 @@ const LILA_BR = 'br-lila'
 const OWNER_PIN = '111111'
 const MANAGER_PIN = '222222'
 const STAFF_PIN = '3333'
+/** Demo listesinde olmayan ikinci (gerçek dükkân gibi) salonun kodu */
+const KOD2 = 'ikinci-salon'
 
 async function call(path: string, body?: unknown, token?: string) {
   const res = await handle(
@@ -69,9 +71,10 @@ async function patronToken() {
 }
 
 /** Sahip panelinden demo güzellik salonunu ekler ve kurar */
-async function addDemo(pt: string, opts: { acik?: boolean } = {}) {
-  let st = (await call('patron/add', { ad: 'Demo Güzellik Salonu', sektor: 'Güzellik Salonu', tel: '', paket: 'p1', kod: 'guzellik-demo' }, pt)).d
-  const shop = st.salonlar.find((s: any) => s.kod === 'guzellik-demo')
+async function addDemo(pt: string, opts: { acik?: boolean; kod?: string } = {}) {
+  const kod = opts.kod ?? 'guzellik-demo'
+  let st = (await call('patron/add', { ad: 'Demo Güzellik Salonu', sektor: 'Güzellik Salonu', tel: '', paket: 'p1', kod }, pt)).d
+  const shop = st.salonlar.find((s: any) => s.kod === kod)
   st = (await call('patron/guzellik-kur', { id: shop.id, sahip: '2468', yonetici: '1234' }, pt)).d
   if (opts.acik) st = (await call('patron/acik', { id: shop.id }, pt)).d
   return { st, shop }
@@ -133,30 +136,30 @@ test('Lila: eski girişler ve eski adresler aynen çalışır', async () => {
 test('Sahip paneli güzellik salonu kurar: kendi kodu, kendi sahip PIN’i, kendi hizmet listesi', async () => {
   db.migrate('0007_coklu_salon.sql')
   const pt = await patronToken()
-  const { st } = await addDemo(pt)
-  expect(st.guzellikKurulu).toContain('guzellik-demo')
+  const { st } = await addDemo(pt, { kod: KOD2 })
+  expect(st.guzellikKurulu).toContain(KOD2)
   expect(st.guzellikKurulu).toContain('lila')
-  const demoBiz = (db.raw.query("SELECT biz FROM rows WHERE kind = 'branch' AND ix = 'guzellik-demo'").get() as { biz: string }).biz
+  const demoBiz = (db.raw.query("SELECT biz FROM rows WHERE kind = 'branch' AND ix = ?").get(KOD2) as { biz: string }).biz
   expect(demoBiz).not.toBe(LILA_BIZ)
   expect((db.raw.query("SELECT COUNT(*) AS n FROM rows WHERE kind = 'service' AND biz = ?").get(demoBiz) as { n: number }).n).toBeGreaterThan(100)
   // Sahip panelinin şube listesinde her şube kendi salonunun adıyla
-  expect(st.subeler.find((x: any) => x.kod === 'guzellik-demo').ad).toBe('Demo Güzellik Salonu')
+  expect(st.subeler.find((x: any) => x.kod === KOD2).ad).toBe('Demo Güzellik Salonu')
   expect(st.subeler.find((x: any) => x.kod === 'lila').ad).toBe('Lila Güzellik Salonu')
   // Her salonun sahip PIN'i yalnızca kendi salonunu açar
-  expect((await call('login', { scope: 'owner', slug: 'guzellik-demo', pin: '2468' })).d.token).toBeTruthy()
-  expect((await call('login', { scope: 'owner', slug: 'guzellik-demo', pin: OWNER_PIN })).s).toBe(403)
+  expect((await call('login', { scope: 'owner', slug: KOD2, pin: '2468' })).d.token).toBeTruthy()
+  expect((await call('login', { scope: 'owner', slug: KOD2, pin: OWNER_PIN })).s).toBe(403)
   expect((await call('login', { scope: 'owner', slug: 'lila', pin: '2468' })).s).toBe(403)
   expect((await call('login', { scope: 'owner', pin: '2468' })).s).toBe(403)
-  expect((await call('login', { scope: 'branch', slug: 'guzellik-demo', as: 'manager', pin: '1234' })).d.token).toBeTruthy()
-  expect((await call('public?k=guzellik-demo')).d.business.name).toBe('Demo Güzellik Salonu')
+  expect((await call('login', { scope: 'branch', slug: KOD2, as: 'manager', pin: '1234' })).d.token).toBeTruthy()
+  expect((await call('public?k=' + KOD2)).d.business.name).toBe('Demo Güzellik Salonu')
   expect((await call('public')).d.business.name).toBe('Lila Güzellik Salonu')
   // Kurulu salonda yalnızca yazılan PIN değişir; eski sahip oturumu kapanır
-  const demoOwner = (await call('login', { scope: 'owner', slug: 'guzellik-demo', pin: '2468' })).d.token
-  const shop = st.salonlar.find((s: any) => s.kod === 'guzellik-demo')
+  const demoOwner = (await call('login', { scope: 'owner', slug: KOD2, pin: '2468' })).d.token
+  const shop = st.salonlar.find((s: any) => s.kod === KOD2)
   await call('patron/guzellik-kur', { id: shop.id, sahip: '13579' }, pt)
   expect((await call('sync', undefined, demoOwner)).s).toBe(401)
-  expect((await call('login', { scope: 'owner', slug: 'guzellik-demo', pin: '13579' })).d.token).toBeTruthy()
-  expect((await call('login', { scope: 'branch', slug: 'guzellik-demo', as: 'manager', pin: '1234' })).d.token).toBeTruthy()
+  expect((await call('login', { scope: 'owner', slug: KOD2, pin: '13579' })).d.token).toBeTruthy()
+  expect((await call('login', { scope: 'branch', slug: KOD2, as: 'manager', pin: '1234' })).d.token).toBeTruthy()
   // Lila'nın PIN'leri değişmedi
   expect((await call('login', { scope: 'owner', slug: 'lila', pin: OWNER_PIN })).d.token).toBeTruthy()
   // İlk kurulumda iki PIN de zorunlu; güzellik olmayan dükkân kurulamaz
@@ -170,10 +173,10 @@ test('Sahip paneli güzellik salonu kurar: kendi kodu, kendi sahip PIN’i, kend
 test('Salonlar birbirinin kayıtlarını göremez ve değiştiremez', async () => {
   db.migrate('0007_coklu_salon.sql')
   const pt = await patronToken()
-  await addDemo(pt)
+  await addDemo(pt, { kod: KOD2 })
   const lilaBefore = snapshot(db, `SELECT kind, id, data, deleted FROM rows WHERE biz = '${LILA_BIZ}' ORDER BY kind, id`)
-  const demoOwner = (await call('login', { scope: 'owner', slug: 'guzellik-demo', pin: '2468' })).d.token
-  const demoMgr = (await call('login', { scope: 'branch', slug: 'guzellik-demo', as: 'manager', pin: '1234' })).d.token
+  const demoOwner = (await call('login', { scope: 'owner', slug: KOD2, pin: '2468' })).d.token
+  const demoMgr = (await call('login', { scope: 'branch', slug: KOD2, as: 'manager', pin: '1234' })).d.token
   const lilaOwner = (await call('login', { scope: 'owner', slug: 'lila', pin: OWNER_PIN })).d.token
   const lilaMgr = (await call('login', { scope: 'branch', slug: 'lila', as: 'manager', pin: MANAGER_PIN })).d.token
 
@@ -185,7 +188,7 @@ test('Salonlar birbirinin kayıtlarını göremez ve değiştiremez', async () =
   expect(dm.rows.some((r: any) => r.branchId === LILA_BR || r.id === LILA_BIZ)).toBe(false)
   for (const tok of [lilaOwner, lilaMgr]) {
     const ls = (await call('sync', undefined, tok)).d
-    expect(ls.rows.some((r: any) => r.kind === 'branch' && r.data.slug === 'guzellik-demo')).toBe(false)
+    expect(ls.rows.some((r: any) => r.kind === 'branch' && r.data.slug === KOD2)).toBe(false)
     expect(ls.rows.filter((r: any) => r.kind === 'business').map((r: any) => r.id)).toEqual([LILA_BIZ])
   }
   // Artımlı senkron da (since > 0) başka salonun değişikliğini getirmez
@@ -410,4 +413,65 @@ test('Demo yükleme betiği: ayrı salon, PIN’siz panel, PIN 1234/5678, en az 
   const after = JSON.parse(snapshot(db, 'SELECT * FROM secrets ORDER BY key')) as { key: string }[]
   const before = JSON.parse(secretsBefore) as { key: string }[]
   expect(after.filter((x) => before.some((b) => b.key === x.key))).toEqual(before)
+})
+
+test('Demo dükkân (guzellik-demo): İşletme yönetici PIN’iyle açılır; sahip PIN’i değişmez, şube eklenmez/silinmez; diğerleri aynı', async () => {
+  db.migrate('0007_coklu_salon.sql')
+  const pt = await patronToken()
+  await addDemo(pt) // guzellik-demo: sahip 2468, yönetici 1234
+  await addDemo(pt, { kod: KOD2 }) // gerçek dükkân gibi: sahip 2468, yönetici 1234
+  const demoBiz = (db.raw.query("SELECT biz FROM rows WHERE kind = 'branch' AND ix = 'guzellik-demo'").get() as { biz: string }).biz
+  const ownerHash = () => (db.raw.query('SELECT hash FROM secrets WHERE key = ?').get('owner:' + demoBiz) as { hash: string }).hash
+  const hashBefore = ownerHash()
+
+  // İşletme (sahip) girişi: yönetici PIN'i 1234 ile açılır; sahip PIN'i, yanlış PIN ya da PIN'siz açılmaz
+  const o = (await call('login', { scope: 'owner', slug: 'guzellik-demo', pin: '1234' })).d
+  expect(o.token).toBeTruthy()
+  expect(o.role).toBe('owner')
+  expect((await call('login', { scope: 'owner', slug: 'guzellik-demo', pin: '2468' })).s).toBe(403)
+  expect((await call('login', { scope: 'owner', slug: 'guzellik-demo', pin: '0000' })).s).toBe(403)
+  expect((await call('login', { scope: 'owner', slug: 'guzellik-demo' })).s).toBe(400)
+
+  // Görüntüleme açık: işletme ve şube satırları gelir
+  const ds = (await call('sync', undefined, o.token)).d
+  const bizRow = ds.rows.find((r: any) => r.kind === 'business')
+  const brRow = ds.rows.find((r: any) => r.kind === 'branch')
+  expect(bizRow.id).toBe(demoBiz)
+  expect(brRow.data.slug).toBe('guzellik-demo')
+
+  // Sahip PIN'ini değiştirmek kapalı (özet aynı kalır); PIN'e dokunmayan güncelleme açık
+  const setPin = await call('write', { rows: [{ ...bizRow, data: { ...bizRow.data, ownerPin: '9999' } }] }, o.token)
+  expect(setPin.s).toBe(403)
+  expect(setPin.d.error).toBe('demo_locked')
+  expect(ownerHash()).toBe(hashBefore)
+  expect((await call('write', { rows: [{ ...bizRow, data: { ...bizRow.data, ownerName: 'Demo Sahip' } }] }, o.token)).d.ok).toBe(true)
+  // Yönetici de sahip PIN'ini değiştiremez (önceden de böyleydi: alan yok sayılır)
+  const demoMgr = (await call('login', { scope: 'branch', slug: 'guzellik-demo', as: 'manager', pin: '1234' })).d.token
+  await call('write', { rows: [{ ...bizRow, data: { ...bizRow.data, ownerPin: '9999' } }] }, demoMgr)
+  expect((await call('login', { scope: 'owner', slug: 'guzellik-demo', pin: '9999' })).s).toBe(403)
+  expect(ownerHash()).toBe(hashBefore)
+
+  // Şube eklemek ve silmek kapalı
+  const newBr = { kind: 'branch', id: 'br-yeni', branchId: 'br-yeni', data: { id: 'br-yeni', businessId: demoBiz, name: 'Yeni', slug: 'guzellik-demo-2' } }
+  const add = await call('write', { rows: [newBr] }, o.token)
+  expect(add.s).toBe(403)
+  expect(add.d.error).toBe('demo_locked')
+  expect((await call('write', { rows: [{ kind: 'branch', id: brRow.id, branchId: brRow.id, deleted: true }] }, o.token)).s).toBe(403)
+  expect((db.raw.query("SELECT COUNT(*) AS n FROM rows WHERE kind = 'branch' AND biz = ?").get(demoBiz) as { n: number }).n).toBe(1)
+
+  // Lila: İşletme yine sahip PIN'iyle açılır, yönetici PIN'iyle açılmaz; şube ekleyebilir
+  expect((await call('login', { scope: 'owner', slug: 'lila', pin: MANAGER_PIN })).s).toBe(403)
+  expect((await call('login', { scope: 'owner', pin: MANAGER_PIN })).s).toBe(403)
+  const lilaOwner = (await call('login', { scope: 'owner', slug: 'lila', pin: OWNER_PIN })).d.token
+  expect(lilaOwner).toBeTruthy()
+  const lilaBr = { kind: 'branch', id: 'br-lila-2', branchId: 'br-lila-2', data: { id: 'br-lila-2', businessId: LILA_BIZ, name: 'İkinci', slug: 'lila-2' } }
+  expect((await call('write', { rows: [lilaBr] }, lilaOwner)).d.ok).toBe(true)
+
+  // Diğer (demo olmayan) dükkân: İşletme sahip PIN'iyle açılır, yönetici PIN'iyle açılmaz; sahip PIN'i değişebilir
+  expect((await call('login', { scope: 'owner', slug: KOD2, pin: '1234' })).s).toBe(403)
+  const o2 = (await call('login', { scope: 'owner', slug: KOD2, pin: '2468' })).d.token
+  expect(o2).toBeTruthy()
+  const biz2 = (await call('sync', undefined, o2)).d.rows.find((r: any) => r.kind === 'business')
+  expect((await call('write', { rows: [{ ...biz2, data: { ...biz2.data, ownerPin: '8642' } }] }, o2)).d.ok).toBe(true)
+  expect((await call('login', { scope: 'owner', slug: KOD2, pin: '8642' })).d.token).toBeTruthy()
 })
